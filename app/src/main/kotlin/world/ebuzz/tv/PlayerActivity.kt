@@ -9,7 +9,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -112,22 +115,55 @@ class PlayerActivity : AppCompatActivity() {
         ui.removeCallbacks(hideVol); ui.postDelayed(hideVol, 2000)
     }
 
+    /** Long-press OK: cycle through the stream's audio tracks (only when it carries more than one). */
+    private fun cycleAudio() {
+        val groups = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO && it.isSupported }
+        if (groups.size < 2) { toast("Single audio track"); return }
+        val cur = groups.indexOfFirst { it.isSelected }
+        val next = groups[(cur + 1) % groups.size]
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setOverrideForType(TrackSelectionOverride(next.mediaTrackGroup, 0)).build()
+        val f = next.getTrackFormat(0)
+        toast("Audio: " + (f.label ?: f.language ?: "track ${(cur + 1) % groups.size + 1}"))
+    }
+
+    private fun toast(msg: String) {
+        b.osdTitle.text = "${channels[index].number} · ${channels[index].title}  ·  $msg"; showOsd()
+    }
+
     private fun togglePlay() {
         if (player.isPlaying) player.pause() else { player.playWhenReady = true; player.play() }
         showOsd()
+    }
+
+    private var okLongPressed = false
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) { okLongPressed = true; cycleAudio(); return true }
+        return super.onKeyLongPress(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (!okLongPressed && channels.isNotEmpty()) togglePlay()
+            okLongPressed = false; return true
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (digits.onKey(keyCode)) return true
         if (channels.isEmpty()) return super.onKeyDown(keyCode, event)
         when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { event.startTracking(); return true }
+            KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK -> cycleAudio()
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_PAGE_UP ->
                 tune((index + 1) % channels.size)
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_PAGE_DOWN ->
                 tune((index - 1 + channels.size) % channels.size)
             KeyEvent.KEYCODE_DPAD_UP -> setVolume(volume + 0.1f)
             KeyEvent.KEYCODE_DPAD_DOWN -> setVolume(volume - 0.1f)
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_SPACE,
+            KeyEvent.KEYCODE_SPACE,
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_STOP ->
                 togglePlay()
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> finish()
