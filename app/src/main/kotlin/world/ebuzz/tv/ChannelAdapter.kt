@@ -25,7 +25,7 @@ class ChannelAdapter(private val onOpen: (Channel) -> Unit) :
         val c = getItem(pos)
         h.b.num.text = c.number.toString()
         h.b.title.text = c.title
-        h.b.poster.load(c.poster) { crossfade(true) }
+        h.b.poster.load(c.poster) { crossfade(true); allowRgb565(true) }
         h.b.root.setOnClickListener { onOpen(c) }
     }
 }

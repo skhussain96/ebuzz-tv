@@ -40,17 +40,17 @@
     <!-- volume -->
     <LinearLayout
         android:id="@+id/volBox"
-        android:layout_width="520dp" android:layout_height="wrap_content"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="48dp"
         android:layout_gravity="top|center_horizontal" android:layout_marginTop="40dp"
         android:orientation="horizontal" android:gravity="center_vertical"
         android:background="@drawable/overlay_bg" android:paddingHorizontal="28dp" android:paddingVertical="18dp"
         android:visibility="gone">
         <ImageView android:id="@+id/volIcon" android:layout_width="34dp" android:layout_height="34dp"
             android:src="@android:drawable/ic_lock_silent_mode_off" app:tint="@color/ink" />
-        <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="14dp" android:layout_marginHorizontal="20dp"
-            android:background="@drawable/track_bg">
-            <View android:id="@+id/volFill" android:layout_width="0dp" android:layout_height="match_parent" android:background="@drawable/track_fill" />
-        </FrameLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="14dp" android:layout_marginHorizontal="20dp"
+            android:orientation="horizontal" android:background="@drawable/track_bg" android:weightSum="1">
+            <View android:id="@+id/volFill" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/track_fill" />
+        </LinearLayout>
         <TextView android:id="@+id/volText" android:layout_width="72dp" android:layout_height="wrap_content"
             android:gravity="end" android:textColor="@color/ink" android:textSize="34sp" android:textStyle="bold" />
     </LinearLayout>

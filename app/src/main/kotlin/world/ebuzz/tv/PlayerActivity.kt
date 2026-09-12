@@ -11,6 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyOrientation()
         b = ActivityPlayerBinding.inflate(layoutInflater).also { setContentView(it.root) }
         volume = prefs.getFloat("volume", 1f)
         digits = DigitEntry(b.chNum) { n -> if (n in 1..channels.size) tune(n - 1) }
@@ -43,8 +45,14 @@ class PlayerActivity : AppCompatActivity() {
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent(ChannelRepo.browserHeaders.getValue("user-agent"))
             .setAllowCrossProtocolRedirects(true)
+        // Live TV needs only a few seconds of buffer; ExoPlayer's default keeps ~50 s in RAM.
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(4_000, 12_000, 1_500, 2_500)
+            .setBackBuffer(0, false)
+            .build()
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(HlsMediaSource.Factory(http))
+            .setLoadControl(loadControl)
             .build().also { p ->
                 b.playerView.player = p
                 p.playWhenReady = true
@@ -98,10 +106,8 @@ class PlayerActivity : AppCompatActivity() {
         val pct = (volume * 100).roundToInt()
         b.volText.text = pct.toString()
         b.volIcon.setImageResource(if (pct == 0) android.R.drawable.ic_lock_silent_mode else android.R.drawable.ic_lock_silent_mode_off)
-        b.volFill.post {
-            b.volFill.layoutParams = b.volFill.layoutParams.apply { width = ((b.volFill.parent as View).width * volume).roundToInt() }
-            b.volFill.requestLayout()
-        }
+        (b.volFill.layoutParams as android.widget.LinearLayout.LayoutParams).weight = volume
+        b.volFill.requestLayout()
         b.volBox.visibility = View.VISIBLE
         ui.removeCallbacks(hideVol); ui.postDelayed(hideVol, 2000)
     }
