@@ -52,11 +52,13 @@ class PlayerActivity : AppCompatActivity() {
                 p.addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(state: Int) {
                         b.spinner.visibility = if (state == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
+                        if (state == Player.STATE_BUFFERING) { b.osd.visibility = View.VISIBLE; ui.removeCallbacks(hideOsd) } else showOsd()
                         if (state == Player.STATE_READY) b.error.visibility = View.GONE
                     }
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
                         b.pausedIcon.visibility = if (!isPlaying && player.playbackState == Player.STATE_READY && !player.playWhenReady) View.VISIBLE else View.GONE
                     }
+                    override fun onRenderedFirstFrame() { b.playerView.visibility = View.VISIBLE }
                     override fun onPlayerError(error: PlaybackException) {
                         b.spinner.visibility = View.GONE
                         b.error.text = "Stream unavailable"; b.error.visibility = View.VISIBLE
@@ -77,6 +79,8 @@ class PlayerActivity : AppCompatActivity() {
         prefs.edit().putInt("last", c.number).apply()
         b.error.visibility = View.GONE
         b.osdTitle.text = "${c.number} · ${c.title}"
+        b.playerView.visibility = View.INVISIBLE          // hide the old channel's last frame until the new one renders
+        player.stop(); player.clearMediaItems()
         player.setMediaItem(MediaItem.fromUri(c.url))
         player.prepare(); player.play()
         showOsd()
