@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/ground">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/grid"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:clipToPadding="false" android:padding="24dp"
+        android:focusable="true" android:descendantFocusability="afterDescendants" />
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="center" android:textColor="@color/inkDim" android:textSize="20sp"
+        android:text="@string/loading" />
+
+    <TextView
+        android:id="@+id/chNum"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="top|end" android:layout_margin="28dp"
+        android:background="@drawable/overlay_bg" android:paddingHorizontal="24dp" android:paddingVertical="6dp"
+        android:textColor="@color/honey" android:textSize="52sp" android:textStyle="bold" android:visibility="gone" />
+</FrameLayout>

@@ -1,0 +1,11 @@
+<resources>
+    <color name="ground">#17111C</color>
+    <color name="ground2">#1F1826</color>
+    <color name="ground3">#2A2033</color>
+    <color name="line">#3A2F45</color>
+    <color name="ink">#F3ECF5</color>
+    <color name="inkDim">#A99CB4</color>
+    <color name="honey">#F5B942</color>
+    <color name="bad">#FF6B6B</color>
+    <color name="scrim">#BF0A070D</color>
+</resources>
