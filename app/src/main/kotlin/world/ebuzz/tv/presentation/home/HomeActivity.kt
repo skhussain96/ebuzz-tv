@@ -75,7 +75,7 @@ class HomeActivity : AppCompatActivity() {
             (b.grid.layoutManager as GridLayoutManager).spanCount = spanCount()
         }
         if (s.moviesTab) movieAdapter.submitList(s.movies) else channelAdapter.submitList(s.channels)
-        renderSorts(s); renderChips(s)
+        renderSorts(s); renderChips(s); renderResume(s)
 
         b.status.visibility = if (s.loading || s.error || s.empty) View.VISIBLE else View.GONE
         b.status.text = when { s.error -> getString(R.string.error); s.empty -> "Nothing found"; else -> getString(R.string.loading) }
@@ -91,15 +91,20 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun renderChips(s: HomeUiState) {
-        val key = s.categories.size * 31 + (s.resume?.movieId ?: 0)
+        val key = s.categories.size
         if (key != builtChipsFor) {
             builtChipsFor = key
             b.chips.removeAllViews()
-            s.resume?.let { r -> b.chips.addView(chip("▶  Resume · ${r.title}", null) { openResume(r) }.apply { tag = RESUME; isSelected = true }) }
             b.chips.addView(chip("All", null) { vm.selectCategory(null) })
             s.categories.forEach { c -> b.chips.addView(chip(c.name, c.id) { vm.selectCategory(c.id) }) }
         }
-        for (i in 0 until b.chips.childCount) b.chips.getChildAt(i).let { v -> if (v.tag != RESUME) v.isSelected = v.tag == (s.categoryId ?: ALL) } 
+        for (i in 0 until b.chips.childCount) b.chips.getChildAt(i).let { v -> v.isSelected = v.tag == (s.categoryId ?: ALL) }
+    }
+
+    private fun renderResume(s: HomeUiState) {
+        val r = s.resume
+        b.resume.visibility = if (s.moviesTab && r != null) View.VISIBLE else View.GONE
+        if (r != null) { b.resume.text = "▶  Resume · ${r.title}"; b.resume.setOnClickListener { openResume(r) } }
     }
 
     private fun chip(label: String, id: Int?, onClick: () -> Unit) =
@@ -137,5 +142,5 @@ class HomeActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    private companion object { const val ALL = "all"; const val RESUME = "resume" }
+    private companion object { const val ALL = "all" }
 }
