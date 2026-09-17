@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:layout_margin="6dp"
+    android:focusable="true" android:clickable="true" android:background="@drawable/tile_bg" android:padding="4dp">
+
+    <FrameLayout android:id="@+id/media" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/media_clip">
+        <world.ebuzz.tv.presentation.common.PosterImageView
+            android:id="@+id/poster"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:scaleType="centerCrop" />
+        <TextView
+            android:id="@+id/badge"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_margin="6dp" android:background="@drawable/badge_bg"
+            android:paddingHorizontal="7dp" android:paddingVertical="2dp"
+            android:textColor="@color/honey" android:textSize="11sp" android:textStyle="bold" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:paddingHorizontal="6dp" android:paddingTop="6dp"
+        android:textColor="@color/ink" android:textSize="14sp" android:maxLines="2" android:ellipsize="end" />
+    <TextView
+        android:id="@+id/sub"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:paddingHorizontal="6dp" android:paddingBottom="6dp"
+        android:textColor="@color/inkDim" android:textSize="12sp" android:maxLines="1" />
+</LinearLayout>

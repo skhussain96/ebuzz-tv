@@ -1,4 +1,4 @@
-package world.ebuzz.tv
+package world.ebuzz.tv.presentation.common
 
 import android.os.Handler
 import android.os.Looper

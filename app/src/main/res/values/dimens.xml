@@ -1,0 +1,5 @@
+<resources>
+    <dimen name="r_surface">14dp</dimen>
+    <dimen name="r_media">10dp</dimen>
+    <dimen name="r_badge">8dp</dimen>
+</resources>

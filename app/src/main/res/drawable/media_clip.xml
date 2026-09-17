@@ -1,3 +1,3 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/honey" /><corners android:radius="@dimen/r_badge" />
+    <solid android:color="@color/ground2" /><corners android:radius="@dimen/r_media" />
 </shape>

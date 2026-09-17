@@ -1,4 +1,4 @@
-package world.ebuzz.tv
+package world.ebuzz.tv.presentation.home
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.databinding.ItemChannelBinding
 
 class ChannelAdapter(private val onOpen: (Channel) -> Unit) :
@@ -19,7 +20,7 @@ class ChannelAdapter(private val onOpen: (Channel) -> Unit) :
     class VH(val b: ItemChannelBinding) : RecyclerView.ViewHolder(b.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        VH(ItemChannelBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+        VH(ItemChannelBinding.inflate(LayoutInflater.from(parent.context), parent, false).apply { media.clipToOutline = true })
 
     override fun onBindViewHolder(h: VH, pos: Int) {
         val c = getItem(pos)

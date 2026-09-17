@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="#000000" android:keepScreenOn="true">
 
@@ -19,22 +20,51 @@
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center"
         android:textColor="@color/bad" android:textSize="20sp" android:visibility="gone" />
 
-    <!-- bottom bar: number · name · LIVE -->
+    <!-- centre transport: only shown for touch / pointer, never for the TV remote -->
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center"
+        android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
+        <ImageView android:id="@+id/btnPrev" android:layout_width="64dp" android:layout_height="64dp" android:padding="16dp"
+            android:background="@drawable/ctl_bg" android:src="@android:drawable/ic_media_previous" app:tint="@color/ink" android:contentDescription="Previous" />
+        <ImageView android:id="@+id/btnPlay" android:layout_width="84dp" android:layout_height="84dp" android:padding="22dp" android:layout_marginHorizontal="28dp"
+            android:background="@drawable/ctl_bg_primary" android:src="@android:drawable/ic_media_pause" app:tint="@color/ground" android:contentDescription="Play or pause" />
+        <ImageView android:id="@+id/btnNext" android:layout_width="64dp" android:layout_height="64dp" android:padding="16dp"
+            android:background="@drawable/ctl_bg" android:src="@android:drawable/ic_media_next" app:tint="@color/ink" android:contentDescription="Next" />
+    </LinearLayout>
+
+    <!-- top bar for touch: back + audio -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="top"
+        android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:visibility="gone">
+        <TextView android:id="@+id/btnBack" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:background="@drawable/pill_bg" android:paddingHorizontal="16dp" android:paddingVertical="9dp"
+            android:text="‹  Back" android:textColor="@color/ink" android:textSize="15sp" />
+        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+        <TextView android:id="@+id/btnAudio" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:background="@drawable/pill_bg" android:paddingHorizontal="16dp" android:paddingVertical="9dp"
+            android:text="Audio" android:textColor="@color/ink" android:textSize="15sp" android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- bottom bar: title + LIVE line, or seek bar for movies -->
     <LinearLayout
         android:id="@+id/osd"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_gravity="bottom" android:orientation="vertical"
-        android:background="@drawable/osd_gradient" android:paddingTop="60dp" android:paddingBottom="28dp"
-        android:paddingHorizontal="40dp" android:visibility="gone">
+        android:background="@drawable/osd_gradient" android:paddingTop="60dp" android:paddingBottom="24dp"
+        android:paddingHorizontal="32dp" android:visibility="gone">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"
             android:gravity="center_vertical">
             <TextView android:id="@+id/osdTitle" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
-                android:textColor="@color/ink" android:textSize="22sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/live" android:textColor="@color/bad" android:textStyle="bold" android:textSize="16sp"
-                android:drawablePadding="6dp" />
+                android:textColor="@color/ink" android:textSize="20sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@+id/osdRight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="16dp"
+                android:text="@string/live" android:textColor="@color/bad" android:textStyle="bold" android:textSize="15sp" />
         </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="10dp" android:background="@drawable/track_fill" />
+        <View android:id="@+id/liveLine" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="10dp" android:background="@drawable/track_fill" />
+        <SeekBar android:id="@+id/seek" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:paddingHorizontal="0dp" android:max="1000" android:progressTint="@color/honey" android:thumbTint="@color/honey"
+            android:progressBackgroundTint="#55FFFFFF" android:focusable="false" android:visibility="gone" />
     </LinearLayout>
 
     <!-- volume -->
@@ -48,8 +78,9 @@
         <ImageView android:id="@+id/volIcon" android:layout_width="34dp" android:layout_height="34dp"
             android:src="@android:drawable/ic_lock_silent_mode_off" app:tint="@color/ink" />
         <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="14dp" android:layout_marginHorizontal="20dp"
-            android:orientation="horizontal" android:background="@drawable/track_bg" android:weightSum="1">
+            android:orientation="horizontal" android:background="@drawable/track_bg">
             <View android:id="@+id/volFill" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/track_fill" />
+            <View android:id="@+id/volRest" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0" />
         </LinearLayout>
         <TextView android:id="@+id/volText" android:layout_width="72dp" android:layout_height="wrap_content"
             android:gravity="end" android:textColor="@color/ink" android:textSize="34sp" android:textStyle="bold" />
@@ -62,8 +93,10 @@
         android:background="@drawable/overlay_bg" android:paddingHorizontal="24dp" android:paddingVertical="6dp"
         android:textColor="@color/honey" android:textSize="52sp" android:textStyle="bold" android:visibility="gone" />
 
-    <ImageView
-        android:id="@+id/pausedIcon"
-        android:layout_width="96dp" android:layout_height="96dp" android:layout_gravity="center"
-        android:src="@android:drawable/ic_media_pause" app:tint="@color/honey" android:visibility="gone" />
+    <!-- brief gesture feedback: "+10s", "Next ›" -->
+    <TextView
+        android:id="@+id/hint"
+        android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center"
+        android:background="@drawable/overlay_bg" android:paddingHorizontal="22dp" android:paddingVertical="10dp"
+        android:textColor="@color/ink" android:textSize="20sp" android:textStyle="bold" android:visibility="gone" />
 </FrameLayout>
