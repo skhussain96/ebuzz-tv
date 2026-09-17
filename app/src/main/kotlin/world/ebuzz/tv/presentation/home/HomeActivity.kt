@@ -41,7 +41,7 @@ class HomeActivity : AppCompatActivity() {
         applyOrientation()
         b = ActivityChannelsBinding.inflate(layoutInflater).also { setContentView(it.root) }
         b.grid.layoutManager = GridLayoutManager(this, 2)
-        digits = DigitEntry(b.chNum) { n -> if (n in 1..vm.state.value.channelCount) openChannel(n) }
+        digits = DigitEntry(b.chNum) { n -> if (vm.hasChannel(n)) openChannel(n) }
 
         b.tabs.visibility = if (isTv) View.GONE else View.VISIBLE      // Movies is a phone / tablet feature
         b.tabLive.setOnClickListener { vm.selectTab(false) }
@@ -79,7 +79,7 @@ class HomeActivity : AppCompatActivity() {
         b.status.visibility = if (s.loading || s.error || s.empty) View.VISIBLE else View.GONE
         b.status.text = when { s.error -> getString(R.string.error); s.empty -> "Nothing found"; else -> getString(R.string.loading) }
 
-        s.focusChannelNumber?.let { n -> vm.consumeFocus(); if (!s.moviesTab) focusTile((n - 1).coerceIn(0, (s.channels.size - 1).coerceAtLeast(0))) }
+        s.focusChannelNumber?.let { n -> vm.consumeFocus(); if (!s.moviesTab) focusTile(s.channels.indexOfFirst { it.number == n }.coerceAtLeast(0)) }
     }
 
     private fun renderChips(s: HomeUiState) {

@@ -3,8 +3,9 @@ package world.ebuzz.tv.domain.usecase
 import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.domain.repository.ChannelRepository
 
-class GetChannels(private val repo: ChannelRepository) {
-    suspend operator fun invoke(): List<Channel> = repo.channels()
+/** Channels keep their API-order numbers; any the content policy rejects are dropped without renumbering the rest. */
+class GetChannels(private val repo: ChannelRepository, private val policy: ContentPolicy = ContentPolicy()) {
+    suspend operator fun invoke(): List<Channel> = repo.channels().filter(policy::allows)
 }
 
 /** Match by name, or by channel-number prefix so "12" finds 12, 120–129. */

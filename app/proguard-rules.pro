@@ -1,1 +1,2 @@
-# org.json and Media3 ship consumer rules; nothing app-specific needed.
+# Ktor references an optional SLF4J binding that is not on Android.
+-dontwarn org.slf4j.**

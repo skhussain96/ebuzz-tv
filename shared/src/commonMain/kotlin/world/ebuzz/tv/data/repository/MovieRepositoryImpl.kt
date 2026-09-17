@@ -1,15 +1,15 @@
 package world.ebuzz.tv.data.repository
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import io.ktor.http.encodeURLParameter
+import kotlinx.serialization.json.JsonObject
 import world.ebuzz.tv.data.remote.EbuzzApi
+import world.ebuzz.tv.data.remote.arr
 import world.ebuzz.tv.data.remote.hasNextPage
 import world.ebuzz.tv.data.remote.toMovie
 import world.ebuzz.tv.domain.model.MovieCategory
 import world.ebuzz.tv.domain.model.MoviePage
 import world.ebuzz.tv.domain.model.MovieQuery
 import world.ebuzz.tv.domain.repository.MovieRepository
-import java.net.URLEncoder
 
 class MovieRepositoryImpl(private val api: EbuzzApi) : MovieRepository {
 
@@ -21,17 +21,16 @@ class MovieRepositoryImpl(private val api: EbuzzApi) : MovieRepository {
         MovieCategory(37, "3D Movies"),
     )
 
-    override suspend fun page(query: MovieQuery): MoviePage = withContext(Dispatchers.IO) {
+    override suspend fun page(query: MovieQuery): MoviePage {
         val text = query.text.trim()
         val path = buildString {
             append("movies?includes=categories,mirrors&limit=$PAGE_SIZE&page=${query.page}&order_by=adate,desc|id,desc")
             query.categoryId?.let { append("&category=$it") }
-            if (text.isNotEmpty()) append("&title=*").append(URLEncoder.encode(text, "UTF-8").replace("+", "%20")).append("*")
+            if (text.isNotEmpty()) append("&title=*").append(text.encodeURLParameter()).append("*")
         }
         val json = api.get(path)
-        val data = json.getJSONArray("data")
-        val items = (0 until data.length()).mapNotNull { data.getJSONObject(it).toMovie() }
-        MoviePage(items, if (json.hasNextPage()) query.page + 1 else null)
+        val items = json.arr("data").orEmpty().mapNotNull { (it as? JsonObject)?.toMovie() }
+        return MoviePage(items, if (json.hasNextPage()) query.page + 1 else null)
     }
 
     private companion object { const val PAGE_SIZE = 60 }

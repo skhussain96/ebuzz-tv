@@ -39,7 +39,7 @@ class PlayerViewModel(private val c: AppContainer, private val args: PlayerArgs)
             is PlayerArgs.Live -> viewModelScope.launch {
                 channels = runCatching { c.getChannels() }.getOrDefault(emptyList())
                 if (channels.isEmpty()) _failed.value = true
-                else tune(((args.number ?: c.getLastChannel()) - 1).coerceIn(0, channels.lastIndex))
+                else tune(indexOfNumber(args.number ?: c.getLastChannel()) ?: 0)
             }
         }
     }
@@ -54,7 +54,9 @@ class PlayerViewModel(private val c: AppContainer, private val args: PlayerArgs)
     /** Live TV only: previous / next channel with wrap-around. */
     fun stepChannel(dir: Int) { if (channels.isNotEmpty()) tune(c.stepChannel(channels.size, index, dir)) }
 
-    fun tuneNumber(n: Int) { if (n in 1..channels.size) tune(n - 1) }
+    fun tuneNumber(n: Int) { indexOfNumber(n)?.let(::tune) }
+
+    private fun indexOfNumber(n: Int): Int? = channels.indexOfFirst { it.number == n }.takeIf { it >= 0 }
 
     fun setVolume(v: Float, persist: Boolean) { volume = v.coerceIn(0f, 1f); if (persist) c.setVolume(volume) }
 

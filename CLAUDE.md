@@ -1,22 +1,38 @@
 # eBuzz TV (Android)
 
 Live TV for Android TV and phones, plus a Movies tab on phones/tablets. Kotlin, Views + ViewBinding, Media3.
-No DI framework, no Compose: APK ≈ 2 MB, low RAM is a requirement.
+Logic is shared with the web player through a Kotlin Multiplatform module. No DI framework, no Compose:
+APK ≈ 2 MB, low RAM is a requirement.
 
-## Layers (package `world.ebuzz.tv`)
+## Modules
 
-- `domain/` – pure Kotlin, no Android imports. `model`, `repository` (interfaces), `usecase` (one small class
-  each, `operator fun invoke`). Business rules live here: `ContentPolicy` (permanent adult/Romance filter, no
-  toggle by design), `GetMoviesPage` (skips pages the policy empties), `SaveMovieProgress` (keep only
-  mid-movie positions), `FilterChannels`, `StepChannel`. Unit tests: `app/src/test/.../UseCaseTest.kt`.
-- `data/` – `remote/EbuzzApi` (OkHttp + the browser headers the API demands), `remote/Mappers` (JSON → domain),
-  `repository/*Impl`, `local/PrefsStores` (SharedPreferences behind `PlaybackStore` / `HomeStateStore`).
-- `di/AppContainer` – the whole object graph, lazily built; reached via `Context.container`.
-- `presentation/` – `home` (HomeViewModel → `HomeUiState`, HomeActivity only renders it), `player`
-  (PlayerViewModel decides what plays and what is persisted; PlayerActivity owns ExoPlayer and views;
-  PlayerGestures is the touch vocabulary), `common`.
+- `shared/` – **Kotlin Multiplatform** (targets: Android, JS). Everything that is not UI or platform storage:
+  - `domain/` – pure Kotlin `model`, `repository` interfaces, `usecase` (one small class each, `operator fun invoke`).
+    Business rules live here: `ContentPolicy`, `GetMoviesPage` (skips pages the policy empties), `SaveMovieProgress`
+    (keep only mid-movie positions), `GetChannels` (policy-filtered, numbers never renumbered), `FilterChannels`, `StepChannel`.
+  - `data/` – `remote/EbuzzApi` (Ktor; Android passes the browser headers the API demands, the web passes its
+    same-origin proxy path and no headers), `remote/Mappers` (kotlinx JSON tree → domain; the API is loosely typed),
+    `repository/*Impl`.
+  - `jsMain/js/EbuzzSdk` – `@JsExport` facade (Promises, arrays) for the web player. Built as one UMD file,
+    `window.ebuzzShared`; the web repo copies it with its `sync-shared.sh`.
+  - Tests: `shared/src/commonTest` (run on the JVM with `:shared:testReleaseUnitTest`).
+- `app/` – Android only: `data/local/PrefsStores` (SharedPreferences behind `PlaybackStore` / `HomeStateStore`),
+  `di/AppContainer` (the whole object graph, lazy; reached via `Context.container`), `presentation/`
+  (`home`: HomeViewModel → `HomeUiState`, HomeActivity only renders it; `player`: PlayerViewModel decides what plays
+  and what is persisted, PlayerActivity owns ExoPlayer and views, PlayerGestures is the touch vocabulary).
 
-To add a feature: model → repository method → use case → expose from `AppContainer` → call from a ViewModel.
+UI is deliberately NOT shared: the web's main target is old Android TV browsers (no WasmGC for Compose web), the
+player is platform-specific anyway (Media3 vs <video>/hls.js/MSE), and Compose costs RAM. Views + ViewBinding here.
+
+To add a feature: model → repository method → use case (all in `shared`) → expose from `AppContainer` and, if the
+web needs it, from `EbuzzSdk` → call from a ViewModel.
+
+## Content policy (do not weaken)
+
+`ContentPolicy` is permanent and over-strict by design: no toggle, no allow-list, false positives accepted.
+Blocks Romance/Erotic/Adult genres, a long term list in title/genre, and a longer one in descriptions, including
+sexual-violence terms; also applied to channel titles. The web keeps a mirrored fallback of the same lists in
+`ebuzz-web.html` (`FALLBACK_POLICY`) for browsers that can't load the bundle — change both together.
 
 ## Behaviour to preserve
 
@@ -33,7 +49,8 @@ To add a feature: model → repository method → use case → expose from `AppC
 ## Build / install
 
 ```bash
-./gradlew testReleaseUnitTest assembleRelease
+./gradlew :shared:testReleaseUnitTest :app:assembleRelease      # Android
+./gradlew :shared:jsBrowserProductionWebpack                    # web bundle → shared/build/kotlin-webpack/js/productionExecutable
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 

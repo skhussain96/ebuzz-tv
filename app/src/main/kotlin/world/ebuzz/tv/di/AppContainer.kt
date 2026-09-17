@@ -25,17 +25,18 @@ import world.ebuzz.tv.domain.usecase.StepChannel
 
 /** Manual dependency graph: one place to see how everything is wired. Lazy, so nothing is built until used. */
 class AppContainer(context: Context) {
-    private val api by lazy { EbuzzApi() }
+    private val api by lazy { EbuzzApi() }                 // direct base URL + browser headers
+    private val policy = ContentPolicy()
     private val channelRepo by lazy { ChannelRepositoryImpl(api) }
     private val movieRepo by lazy { MovieRepositoryImpl(api) }
     private val playback by lazy { PrefsPlaybackStore(context.applicationContext) }
     private val homeState by lazy { PrefsHomeStateStore(context.applicationContext) }
 
-    val getChannels by lazy { GetChannels(channelRepo) }
+    val getChannels by lazy { GetChannels(channelRepo, policy) }
     val filterChannels = FilterChannels()
     val stepChannel = StepChannel()
     val getMovieCategories by lazy { GetMovieCategories(movieRepo) }
-    val getMoviesPage by lazy { GetMoviesPage(movieRepo, ContentPolicy()) }
+    val getMoviesPage by lazy { GetMoviesPage(movieRepo, policy) }
 
     val getLastChannel by lazy { GetLastChannel(playback) }
     val setLastChannel by lazy { SetLastChannel(playback) }

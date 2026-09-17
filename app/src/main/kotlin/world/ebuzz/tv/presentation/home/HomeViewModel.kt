@@ -21,7 +21,6 @@ data class HomeUiState(
     val moviesTab: Boolean = false,
     val query: String = "",
     val channels: List<Channel> = emptyList(),          // already filtered by query
-    val channelCount: Int = 0,
     val focusChannelNumber: Int? = null,                // one-shot: tile to focus after the first load
     val movies: List<Movie> = emptyList(),
     val categories: List<MovieCategory> = emptyList(),
@@ -72,6 +71,8 @@ class HomeViewModel(private val c: AppContainer, private val moviesAvailable: Bo
 
     fun refreshResume() = _state.update { it.copy(resume = if (it.moviesTab) c.getResumePoint() else null) }
 
+    fun hasChannel(number: Int) = allChannels.any { it.number == number }
+
     fun consumeFocus() = _state.update { it.copy(focusChannelNumber = null) }
 
     private fun loadChannels() {
@@ -81,7 +82,7 @@ class HomeViewModel(private val c: AppContainer, private val moviesAvailable: Bo
             runCatching { c.getChannels() }
                 .onSuccess { list ->
                     allChannels = list
-                    _state.update { it.copy(channels = c.filterChannels(list, it.query), channelCount = list.size, loading = false, focusChannelNumber = c.getLastChannel()) }
+                    _state.update { it.copy(channels = c.filterChannels(list, it.query), loading = false, focusChannelNumber = c.getLastChannel()) }
                 }
                 .onFailure { _state.update { it.copy(loading = false, error = true) } }
         }
