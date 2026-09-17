@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.SurfaceView
 
-/** A video surface that letterboxes itself to the stream's aspect ratio inside whatever space it is given. */
 class AspectSurfaceView @JvmOverloads constructor(c: Context, a: AttributeSet? = null) : SurfaceView(c, a) {
     var aspect = 16f / 9f
         set(v) { if (v > 0 && v != field) { field = v; requestLayout() } }

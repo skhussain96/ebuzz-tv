@@ -10,10 +10,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 
-/**
- * All the image loading this app needs, in place of a library: fetch, downsample to the view, RGB_565,
- * a small memory cache, and ignore results for views that were rebound meanwhile.
- */
 object ImageLoader {
     private val pool = Executors.newFixedThreadPool(6)
     private val main = Handler(Looper.getMainLooper())
@@ -29,7 +25,7 @@ object ImageLoader {
         val target = view.width.takeIf { it > 0 } ?: 360
         pool.execute {
             if (view.getTag(R.id.image_url) != url) return@execute      // scrolled past while queued
-            val bmp = runCatching { fetch(url, target) }.onFailure { android.util.Log.w("ImageLoader", url, it) }.getOrNull() ?: return@execute
+            val bmp = runCatching { fetch(url, target) }.getOrNull() ?: return@execute
             cache.put(url, bmp)
             main.post { if (view.getTag(R.id.image_url) == url) view.setImageBitmap(bmp) }
         }

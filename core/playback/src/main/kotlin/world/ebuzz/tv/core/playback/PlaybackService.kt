@@ -20,11 +20,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import world.ebuzz.tv.data.remote.EbuzzApi
 
-/**
- * Owns the one ExoPlayer of the app. Screens talk to it through a MediaController, so playback survives the
- * screen: albums keep playing in the background with a media notification and lock-screen / headset controls.
- * Media3 promotes the service to the foreground while playing and demotes it when paused.
- */
 class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
 
@@ -45,10 +40,6 @@ class PlaybackService : MediaSessionService() {
     }
 
     private companion object {
-        /**
-         * Films are MP4 or Matroska, songs are MP3/M4A; live TV is HLS, which brings its own TS/fMP4 handling.
-         * Naming them (instead of DefaultExtractorsFactory) lets R8 drop the FLV, OGG, WAV, AMR, AVI, PS… parsers.
-         */
         val CATALOGUE_FORMATS = ExtractorsFactory {
             arrayOf<Extractor>(
                 Mp4Extractor(SubtitleParser.Factory.UNSUPPORTED), FragmentedMp4Extractor(SubtitleParser.Factory.UNSUPPORTED),
@@ -59,7 +50,6 @@ class PlaybackService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
-    /** Swiping the app away stops playback unless something is actually playing. */
     override fun onTaskRemoved(rootIntent: Intent?) {
         val p = session?.player
         if (p == null || !p.playWhenReady || p.mediaItemCount == 0) stopSelf()
