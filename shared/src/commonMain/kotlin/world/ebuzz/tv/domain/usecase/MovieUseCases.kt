@@ -8,9 +8,12 @@ import world.ebuzz.tv.domain.repository.MovieRepository
 
 /** BluRay first, cam rips last; unknown labels sink to the end. Stable, so API order is kept within a rank. */
 class RankByQuality {
-    operator fun invoke(movies: List<Movie>): List<Movie> = movies.sortedBy(::rank)
+    operator fun invoke(movies: List<Movie>): List<Movie> = invoke(movies, Movie::quality)
 
-    private fun rank(m: Movie): Int = LADDER.indexOf(m.quality.lowercase().filterNot(Char::isWhitespace)).let { if (it < 0) LADDER.size else it }
+    /** Ranks anything that carries a quality label (e.g. UI tiles whose badge is the quality). */
+    operator fun <T> invoke(items: List<T>, quality: (T) -> String): List<T> = items.sortedBy { rank(quality(it)) }
+
+    private fun rank(quality: String): Int = LADDER.indexOf(quality.lowercase().filterNot(Char::isWhitespace)).let { if (it < 0) LADDER.size else it }
 
     private companion object {
         val LADDER = listOf("bluray", "brrip", "bdrip", "webdl", "web-dl", "webrip", "hdrip", "hdtv", "dvdrip", "master", "dvdscr", "hdcam", "hdts", "cam", "ts")

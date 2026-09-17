@@ -9,16 +9,23 @@ data class Movie(
 
 data class MovieCategory(val id: Int, val name: String)
 
+data class Track(val name: String, val streamUrl: String)
+
+/** A music album: the API calls its songs "mirrors". */
+data class Album(val id: Int, val title: String, val poster: String?, val tracks: List<Track>, val description: String = "")
+
+data class AlbumPage(val items: List<Album>, val nextPage: Int?)
+
 /**
  * How a movie list is ordered. All but [QUALITY] are applied by the API across the whole catalogue;
  * quality has no meaningful server ordering (free text), so it is ranked on the client.
  */
-enum class MovieSort(val label: String, val apiOrder: String, val rankedOnClient: Boolean = false) {
-    ADDED("Newest", "adate,desc|id,desc"),
+enum class MovieSort(val label: String, val apiOrder: String, val rankedOnClient: Boolean = false, val forMusic: Boolean = false) {
+    ADDED("Newest", "adate,desc|id,desc", forMusic = true),
     YEAR("Release year", "releasedate,desc|id,desc"),
-    TITLE("Title A–Z", "title,asc"),
+    TITLE("Title A–Z", "title,asc", forMusic = true),
     RATING("Top rated", "rating,desc|id,desc"),
-    VIEWS("Most viewed", "views,desc|id,desc"),
+    VIEWS("Most viewed", "views,desc|id,desc", forMusic = true),
     QUALITY("Best quality", "adate,desc|id,desc", rankedOnClient = true),
 }
 
@@ -29,5 +36,3 @@ data class MovieQuery(val page: Int, val categoryId: Int?, val text: String, val
 data class MoviePage(val items: List<Movie>, val nextPage: Int?)
 
 data class ResumePoint(val movieId: Int, val title: String, val streamUrl: String, val positionMs: Long)
-
-data class HomeState(val moviesTab: Boolean, val categoryId: Int?, val sort: MovieSort = MovieSort.ADDED)

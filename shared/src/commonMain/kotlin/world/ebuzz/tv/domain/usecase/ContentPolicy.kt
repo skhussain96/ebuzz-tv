@@ -1,5 +1,6 @@
 package world.ebuzz.tv.domain.usecase
 
+import world.ebuzz.tv.domain.model.Album
 import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.domain.model.Movie
 
@@ -20,6 +21,9 @@ class ContentPolicy {
     fun allows(m: Movie): Boolean = allows(m.title, m.genre, m.description)
 
     fun allows(c: Channel): Boolean = allows(c.title, "", "")
+
+    /** Albums have no genre; the album title, its description and every track name are checked. */
+    fun allows(a: Album): Boolean = allows(a.title, "", a.description) && a.tracks.none { !allows(it.name, "", "") }
 
     fun allows(title: String, genre: String, description: String): Boolean = !(
         genres.containsMatchIn(genre) || this.title.containsMatchIn("$title $genre") ||

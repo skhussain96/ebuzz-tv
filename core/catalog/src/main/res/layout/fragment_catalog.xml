@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+        <EditText
+            android:id="@+id/search" style="@style/SearchField" />
+
+        <!-- every row narrows the same result set: search AND sort AND category -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal"
+            android:gravity="center_vertical" android:paddingTop="6dp">
+            <TextView style="@style/RowLabel" android:text="Sort" />
+            <HorizontalScrollView style="@style/ChipRow"><LinearLayout android:id="@+id/sorts" style="@style/ChipRowContent" /></HorizontalScrollView>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView style="@style/RowLabel" android:text="Category" />
+            <HorizontalScrollView style="@style/ChipRow"><LinearLayout android:id="@+id/chips" style="@style/ChipRowContent" /></HorizontalScrollView>
+        </LinearLayout>
+        <TextView
+            android:id="@+id/shortcut" style="@style/Chip"
+            android:layout_width="match_parent" android:layout_marginHorizontal="16dp" android:layout_marginTop="6dp"
+            android:maxLines="1" android:ellipsize="end" android:textColor="@color/honey" android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/grid"
+            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:clipToPadding="false" android:padding="10dp"
+            android:focusable="true" android:descendantFocusability="afterDescendants" />
+    </LinearLayout>
+
+    <world.ebuzz.tv.core.ui.StateView android:id="@+id/state" android:layout_width="match_parent" android:layout_height="match_parent" />
+</FrameLayout>

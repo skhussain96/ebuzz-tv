@@ -1,6 +1,8 @@
 package world.ebuzz.tv
 
 import kotlinx.coroutines.test.runTest
+import world.ebuzz.tv.domain.model.Album
+import world.ebuzz.tv.domain.model.AlbumPage
 import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.domain.model.Movie
 import world.ebuzz.tv.domain.model.MovieCategory
@@ -8,12 +10,17 @@ import world.ebuzz.tv.domain.model.MoviePage
 import world.ebuzz.tv.domain.model.MovieQuery
 import world.ebuzz.tv.domain.model.MovieSort
 import world.ebuzz.tv.domain.model.ResumePoint
+import world.ebuzz.tv.domain.model.Track
 import world.ebuzz.tv.domain.repository.MovieRepository
+import world.ebuzz.tv.domain.repository.MusicRepository
 import world.ebuzz.tv.domain.repository.PlaybackStore
 import world.ebuzz.tv.domain.usecase.ContentPolicy
 import world.ebuzz.tv.domain.usecase.FilterChannels
 import world.ebuzz.tv.domain.usecase.GetMovieProgress
 import world.ebuzz.tv.domain.usecase.GetMoviesPage
+import world.ebuzz.tv.domain.usecase.GetMusicPage
+import world.ebuzz.tv.domain.usecase.GetMusicSorts
+import world.ebuzz.tv.domain.usecase.StepTrack
 import world.ebuzz.tv.domain.usecase.RankByQuality
 import world.ebuzz.tv.domain.usecase.SaveMovieProgress
 import world.ebuzz.tv.domain.usecase.StepChannel
@@ -95,6 +102,20 @@ class UseCaseTest {
     @Test fun everySortHasAnApiOrderAndOnlyQualityIsClientRanked() {
         assertTrue(MovieSort.entries.all { it.apiOrder.isNotBlank() })
         assertEquals(listOf(MovieSort.QUALITY), MovieSort.entries.filter { it.rankedOnClient })
+    }
+
+    @Test fun albumsAreFilteredByTitleAndTrackNamesAndNeedTracks() = runTest {
+        val ok = Album(1, "Sufi Hits", null, listOf(Track("Dam Mast Qalandar", "u/1.mp3")))
+        val badTitle = Album(2, "Sexy Beats", null, listOf(Track("One", "u/2.mp3")))
+        val badTrack = Album(3, "Party Mix", null, listOf(Track("Fine", "u/3.mp3"), Track("Naughty Girl", "u/4.mp3")))
+        val empty = Album(4, "No Songs", null, emptyList())
+        val repo = object : MusicRepository {
+            override fun categories() = emptyList<MovieCategory>()
+            override suspend fun page(query: MovieQuery) = AlbumPage(listOf(ok, badTitle, badTrack, empty), null)
+        }
+        assertEquals(listOf(1), GetMusicPage(repo, ContentPolicy())(MovieQuery(1, null, "")).items.map { it.id })
+        assertEquals(listOf(MovieSort.ADDED, MovieSort.TITLE, MovieSort.VIEWS), GetMusicSorts()())
+        assertEquals(1, StepTrack()(3, 0, 1)); assertNull(StepTrack()(3, 2, 1)); assertNull(StepTrack()(3, 0, -1))
     }
 
     @Test fun progressIsKeptOnlyMidMovie() {

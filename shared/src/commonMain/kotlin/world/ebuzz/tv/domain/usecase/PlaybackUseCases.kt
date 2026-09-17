@@ -1,8 +1,6 @@
 package world.ebuzz.tv.domain.usecase
 
-import world.ebuzz.tv.domain.model.HomeState
 import world.ebuzz.tv.domain.model.ResumePoint
-import world.ebuzz.tv.domain.repository.HomeStateStore
 import world.ebuzz.tv.domain.repository.PlaybackStore
 
 class GetLastChannel(private val store: PlaybackStore) { operator fun invoke(): Int = store.lastChannelNumber }
@@ -28,9 +26,6 @@ class SaveMovieProgress(private val store: PlaybackStore) {
 class ClearMovieProgress(private val store: PlaybackStore) { operator fun invoke(movieId: Int) = store.clearProgress(movieId) }
 
 class GetResumePoint(private val store: PlaybackStore) { operator fun invoke(): ResumePoint? = store.resumePoint() }
-
-class GetHomeState(private val store: HomeStateStore) { operator fun invoke(): HomeState = store.load() }
-class SaveHomeState(private val store: HomeStateStore) { operator fun invoke(s: HomeState) = store.save(s) }
 
 private const val MIN_RESUME_MS = 20_000L
 private const val END_MARGIN_MS = 30_000L

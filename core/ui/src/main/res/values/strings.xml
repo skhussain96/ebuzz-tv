@@ -1,0 +1,7 @@
+<resources>
+    <string name="live">LIVE</string>
+    <string name="loading">Loading…</string>
+    <string name="error_title">Couldn\'t connect</string>
+    <string name="error_message">Check your internet connection and try again.</string>
+    <string name="retry">Retry</string>
+</resources>

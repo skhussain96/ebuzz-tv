@@ -5,8 +5,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import world.ebuzz.tv.domain.model.Album
 import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.domain.model.Movie
+import world.ebuzz.tv.domain.model.Track
 
 // The API is loosely typed (ratings arrive as "7.1", "0" or false), so fields are read from the JSON tree
 // rather than bound to strict DTOs that one odd value would break.
@@ -35,6 +37,17 @@ fun JsonObject.toMovie(): Movie? {
         year = yearRe.find(str("release_date"))?.value.orEmpty(), rating = str("rating").clean(),
         quality = str("print").clean(), streamUrl = url, genre = str("genre"), description = str("description"),
     )
+}
+
+private val audio = Regex("\\.(mp3|m4a|aac|ogg|oga|opus|flac|wav)(\\?|$)", RegexOption.IGNORE_CASE)
+
+/** Albums list their songs as `mirrors` with a `name`; only directly playable audio files count as tracks. */
+fun JsonObject.toAlbum(): Album? {
+    val tracks = arr("mirrors")?.mapNotNull { (it as? JsonObject)?.let { m ->
+        val url = m.str("url"); if (!audio.containsMatchIn(url)) null
+        else Track(m.str("name").replace(Regex("\\.(mp3|m4a)$", RegexOption.IGNORE_CASE), "").ifBlank { url.substringAfterLast('/') }, url)
+    } }.orEmpty()
+    return Album(int("id") ?: return null, str("title"), str("poster").takeIf(String::isNotBlank), tracks, str("description").let { if (it == "N/A") "" else it })
 }
 
 fun JsonObject.hasNextPage(): Boolean = obj("meta")?.let { (it.int("current_page") ?: 0) < (it.int("last_page") ?: 0) } ?: false

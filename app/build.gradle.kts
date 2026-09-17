@@ -8,11 +8,30 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "world.ebuzz.tv"
+        applicationId = "world.ebuzz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.3.1"
+        versionCode = 7
+        versionName = "1.5.0"
+    }
+
+    // Two editions from one codebase. What differs is which feature modules each one links (see dependencies)
+    // and the section list in src/<edition>/kotlin/.../Sections.kt.
+    //   tv            – Live TV only.
+    //   entertainment – Live TV + Movies.
+    // Separate application ids, so both can be installed side by side.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("tv") {
+            dimension = "edition"
+            applicationIdSuffix = ".tv"
+            resValue("string", "app_name", "eBuzz TV")
+        }
+        create("entertainment") {
+            dimension = "edition"
+            applicationIdSuffix = ".entertainment"
+            resValue("string", "app_name", "eBuzz Entertainment")
+        }
     }
     buildTypes {
         release {
@@ -31,17 +50,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":shared"))
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
-    implementation("androidx.media3:media3-ui:1.5.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
-    implementation("io.coil-kt:coil:2.7.0")
+    implementation(project(":core:ui"))
+    implementation(project(":core:data"))
+    implementation(project(":core:playback"))       // contributes the player activity + service via manifest merge
+    implementation(project(":feature:live"))
 
+    // Only the Entertainment edition links these modules; the TV edition never sees them.
+    "entertainmentImplementation"(project(":feature:movies"))
+    "entertainmentImplementation"(project(":feature:music"))
+
+    implementation("androidx.core:core-ktx:1.15.0")
 }

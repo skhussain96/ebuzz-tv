@@ -1,7 +1,7 @@
 package world.ebuzz.tv.domain.repository
 
+import world.ebuzz.tv.domain.model.AlbumPage
 import world.ebuzz.tv.domain.model.Channel
-import world.ebuzz.tv.domain.model.HomeState
 import world.ebuzz.tv.domain.model.MovieCategory
 import world.ebuzz.tv.domain.model.MoviePage
 import world.ebuzz.tv.domain.model.MovieQuery
@@ -18,6 +18,12 @@ interface MovieRepository {
     suspend fun page(query: MovieQuery): MoviePage
 }
 
+interface MusicRepository {
+    fun categories(): List<MovieCategory>
+    /** One unfiltered API page of albums; [MovieQuery.sort] must be a `forMusic` sort. */
+    suspend fun page(query: MovieQuery): AlbumPage
+}
+
 interface PlaybackStore {
     var lastChannelNumber: Int
     var volume: Float
@@ -25,9 +31,4 @@ interface PlaybackStore {
     fun saveProgress(point: ResumePoint)
     fun clearProgress(movieId: Int)
     fun resumePoint(): ResumePoint?
-}
-
-interface HomeStateStore {
-    fun load(): HomeState
-    fun save(state: HomeState)
 }
