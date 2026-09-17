@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
+import world.ebuzz.tv.core.ui.loadUrl
 import world.ebuzz.tv.core.catalog.databinding.ItemPosterBinding
 
 class PosterAdapter(private val onOpen: (PosterTile) -> Unit) : ListAdapter<PosterTile, PosterAdapter.VH>(Diff) {
@@ -26,7 +26,7 @@ class PosterAdapter(private val onOpen: (PosterTile) -> Unit) : ListAdapter<Post
         h.b.title.text = t.title
         h.b.sub.text = t.subtitle; h.b.sub.visibility = if (t.subtitle.isEmpty()) View.GONE else View.VISIBLE
         h.b.badge.text = t.badge; h.b.badge.visibility = if (t.badge.isEmpty()) View.GONE else View.VISIBLE
-        h.b.poster.load(t.poster) { crossfade(true); allowRgb565(true) }
+        h.b.poster.loadUrl(t.poster)
         h.b.root.setOnClickListener { onOpen(t) }
     }
 }

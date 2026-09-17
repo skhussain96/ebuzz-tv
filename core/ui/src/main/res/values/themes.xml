@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.EbuzzTv" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.EbuzzTv" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
         <item name="android:colorBackground">@color/ground</item>
         <item name="android:textColor">@color/ink</item>
@@ -46,16 +46,17 @@
         <item name="android:layout_marginEnd">16dp</item>
         <item name="android:layout_marginTop">12dp</item>
         <item name="android:background">@drawable/search_bg</item>
-        <item name="android:paddingStart">18dp</item>
-        <item name="android:paddingEnd">18dp</item>
-        <item name="android:paddingTop">11dp</item>
-        <item name="android:paddingBottom">11dp</item>
-        <item name="android:drawableStart">@android:drawable/ic_menu_search</item>
-        <item name="android:drawablePadding">12dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:drawableStart">@drawable/ic_search</item>
+        <item name="android:drawablePadding">8dp</item>
         <item name="android:drawableTint">@color/inkDim</item>
         <item name="android:textColorHint">@color/inkDim</item>
         <item name="android:textColor">@color/ink</item>
-        <item name="android:textSize">16sp</item>
         <item name="android:inputType">text</item>
         <item name="android:imeOptions">actionSearch|flagNoExtractUi</item>
         <item name="android:maxLines">1</item>

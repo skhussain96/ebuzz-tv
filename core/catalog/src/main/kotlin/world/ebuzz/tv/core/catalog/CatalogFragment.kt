@@ -21,6 +21,7 @@ import world.ebuzz.tv.core.data.container
 import world.ebuzz.tv.core.ui.KeyHandler
 import world.ebuzz.tv.core.ui.chip
 import world.ebuzz.tv.core.ui.factory
+import world.ebuzz.tv.core.ui.keyboardOnlyOnClick
 import world.ebuzz.tv.core.ui.selectChip
 
 /** The poster-grid screen. A feature subclasses it and supplies its [CatalogSource]; nothing else. */
@@ -41,6 +42,8 @@ abstract class CatalogFragment : Fragment(), KeyHandler {
         b.grid.layoutManager = GridLayoutManager(requireContext(), spanCount())
         b.grid.adapter = adapter
         b.state.onRetry = vm::retry
+        b.search.keyboardOnlyOnClick()
+        b.grid.requestFocus()                                   // never let the search box take first focus (it would open the TV keyboard)
         b.search.doAfterTextChanged { vm.setQuery(it?.toString().orEmpty()) }
         b.grid.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {

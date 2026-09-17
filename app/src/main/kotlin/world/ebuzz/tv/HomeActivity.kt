@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import world.ebuzz.tv.core.data.container
 import world.ebuzz.tv.core.ui.HomeSection
@@ -16,7 +16,7 @@ import world.ebuzz.tv.databinding.ActivityHomeBinding
  * The shell: a tab per section and the current section's fragment. It knows nothing about what a section is —
  * [homeSections] is supplied by the edition's source set, so an edition only contains the features it lists.
  */
-class HomeActivity : AppCompatActivity() {
+class HomeActivity : FragmentActivity() {
     private lateinit var b: ActivityHomeBinding
     private val sections: List<HomeSection> = homeSections
     private var current: HomeSection? = null

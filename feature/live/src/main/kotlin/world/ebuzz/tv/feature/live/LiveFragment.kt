@@ -20,6 +20,7 @@ import world.ebuzz.tv.core.ui.DigitEntry
 import world.ebuzz.tv.core.ui.HomeSection
 import world.ebuzz.tv.core.ui.KeyHandler
 import world.ebuzz.tv.core.ui.factory
+import world.ebuzz.tv.core.ui.keyboardOnlyOnClick
 import world.ebuzz.tv.feature.live.databinding.FragmentLiveBinding
 
 object LiveSection : HomeSection {
@@ -43,6 +44,8 @@ class LiveFragment : Fragment(), KeyHandler {
         b.grid.adapter = adapter
         b.state.onRetry = vm::load
         digits = DigitEntry(b.chNum) { n -> if (vm.hasChannel(n)) open(n) }
+        b.search.keyboardOnlyOnClick()
+        b.grid.requestFocus()                                   // never let the search box take first focus (it would open the TV keyboard)
         b.search.doAfterTextChanged { vm.setQuery(it?.toString().orEmpty()) }
         b.search.setOnEditorActionListener { _, _, _ -> vm.state.value.channels.firstOrNull()?.let { open(it.number) }; true }
         viewLifecycleOwner.lifecycleScope.launch { viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.state.collect(::render) } }

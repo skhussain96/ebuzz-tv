@@ -90,3 +90,11 @@ adb install -r app/build/outputs/apk/tv/release/app-tv-release.apk     # or ente
 ```
 
 Release is R8-minified and signed with the debug key (sideload only).
+
+## Size budget (keep it ~1.3 MB)
+
+No AppCompat, no media3-ui, no Coil, no OkHttp. Theme is platform Material; activities are `FragmentActivity` /
+`ComponentActivity`; video renders into `AspectSurfaceView` with a black `shutter` view; images go through
+`core/ui/ImageLoader.kt` (`ImageView.loadUrl`); Ktor uses the `android` engine; `PlaybackService` names only the
+MP4/MKV/MP3/ADTS extractors. English resources only. Icons are vectors - do not add PNGs or icon libraries.
+On TV the search field never opens the keyboard on focus, only on OK (`keyboardOnlyOnClick`).

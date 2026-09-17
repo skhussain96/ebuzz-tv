@@ -11,8 +11,8 @@ android {
         applicationId = "world.ebuzz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.5.0"
+        versionCode = 8
+        versionName = "1.6.0"
     }
 
     // Two editions from one codebase. What differs is which feature modules each one links (see dependencies)
@@ -33,6 +33,15 @@ android {
             resValue("string", "app_name", "eBuzz Entertainment")
         }
     }
+    // Size: the UI is English-only, so the ~80 translated copies of library strings are dropped from the resource table.
+    androidResources { localeFilters += "en" }
+    packaging {
+        resources.excludes += setOf(
+            "kotlin/**", "META-INF/*.version", "META-INF/*.kotlin_module", "META-INF/com/android/build/gradle/**",
+            "DebugProbesKt.bin", "kotlin-tooling-metadata.json", "META-INF/AL2.0", "META-INF/LGPL2.1", "META-INF/LICENSE*", "META-INF/NOTICE*",
+        )
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true

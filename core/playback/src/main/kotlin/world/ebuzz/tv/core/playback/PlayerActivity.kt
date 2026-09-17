@@ -13,8 +13,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.SeekBar
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import android.app.AlertDialog
+import androidx.activity.ComponentActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -29,7 +29,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.Tracks
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import coil.load
+import androidx.media3.common.VideoSize
+import world.ebuzz.tv.core.ui.loadUrl
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.flow.filterNotNull
@@ -68,7 +69,7 @@ import kotlin.math.roundToInt
  *          tap = buttons, double-tap = pause (live) or ±10 s by side.
  * Pointer: click = tap, wheel = volume, movement reveals the buttons.
  */
-class PlayerActivity : AppCompatActivity() {
+class PlayerActivity : ComponentActivity() {
     private lateinit var b: ActivityPlayerBinding
     private lateinit var overlay: PlayerOverlay
     private lateinit var digits: DigitEntry
@@ -120,7 +121,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun onConnected(c: MediaController) {
         player = c
-        b.playerView.player = c
+        c.setVideoSurfaceView(b.surface)
         c.addListener(listener)
         c.volume = vm.volume
         when (val a = vm.args) {
@@ -128,7 +129,7 @@ class PlayerActivity : AppCompatActivity() {
             PlayerArgs.Attach -> if (c.mediaItemCount == 0) { finish(); return } else kind = MediaIds.kindOf(c.currentMediaItem)
             else -> lifecycleScope.launch {
                 repeatOnLifecycle(Lifecycle.State.CREATED) {
-                    launch { vm.now.filterNotNull().collect { overlay.error(null); b.playerView.visibility = View.INVISIBLE; loadStream(c, it); paint() } }
+                    launch { vm.now.filterNotNull().collect { overlay.error(null); b.shutter.visibility = View.VISIBLE; loadStream(c, it); paint() } }
                     launch { vm.failed.collect { if (it) overlay.error(getString(UiR.string.error_title)) } }
                 }
             }
@@ -148,7 +149,8 @@ class PlayerActivity : AppCompatActivity() {
         override fun onIsPlayingChanged(isPlaying: Boolean) = overlay.playing(isPlaying)
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) = paint()
         override fun onMediaMetadataChanged(metadata: MediaMetadata) = paint()      // a controller learns titles and art a beat late
-        override fun onRenderedFirstFrame() { if (kind != PlayerKind.ALBUM) b.playerView.visibility = View.VISIBLE }
+        override fun onRenderedFirstFrame() { if (kind != PlayerKind.ALBUM) b.shutter.visibility = View.GONE }
+        override fun onVideoSizeChanged(size: VideoSize) { if (size.height > 0) b.surface.aspect = size.width * size.pixelWidthHeightRatio / size.height }
         override fun onTracksChanged(tracks: Tracks) { b.btnAudio.visibility = if (player?.let(hasAudioChoice::invoke) == true) View.VISIBLE else View.GONE }
         override fun onPlayerError(error: PlaybackException) = overlay.error("Stream unavailable")
     }
@@ -158,8 +160,8 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         b.osdTitle.text = describe(p, kind).ifBlank { (vm.args as? PlayerArgs.AlbumArgs)?.title.orEmpty() }
         if (kind == PlayerKind.ALBUM) {
-            b.playerView.visibility = View.INVISIBLE                 // audio only: the video surface would cover the artwork
-            b.art.load(p.mediaMetadata.artworkUri ?: (vm.args as? PlayerArgs.AlbumArgs)?.poster) { crossfade(true) }
+            b.shutter.visibility = View.VISIBLE                      // audio only: black behind the artwork
+            b.art.loadUrl(p.mediaMetadata.artworkUri?.toString() ?: (vm.args as? PlayerArgs.AlbumArgs)?.poster)
         }
         overlay.playing(p.isPlaying); paintProgress(); overlay.show(p.playWhenReady)
     }
@@ -291,7 +293,7 @@ class PlayerActivity : AppCompatActivity() {
             p.removeListener(listener)
             if (isFinishing && kind != PlayerKind.ALBUM) { p.stop(); p.clearMediaItems() }        // leaving a channel or film ends it
         }
-        b.playerView.player = null
+        player?.clearVideoSurfaceView(b.surface)
         controllerFuture?.let(MediaController::releaseFuture)
         super.onDestroy()
     }

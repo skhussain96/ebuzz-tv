@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
+import world.ebuzz.tv.core.ui.loadUrl
 import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.feature.live.databinding.ItemChannelBinding
 
@@ -26,7 +26,7 @@ class ChannelAdapter(private val onOpen: (Channel) -> Unit) :
         val c = getItem(pos)
         h.b.num.text = c.number.toString()
         h.b.title.text = c.title
-        h.b.poster.load(c.poster) { crossfade(true); allowRgb565(true) }
+        h.b.poster.loadUrl(c.poster)
         h.b.root.setOnClickListener { onOpen(c) }
     }
 }

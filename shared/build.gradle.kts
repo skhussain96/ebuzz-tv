@@ -30,7 +30,8 @@ kotlin {
             implementation(kotlin("test"))
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
         }
-        androidMain.dependencies { implementation("io.ktor:ktor-client-okhttp:3.1.1") }
+        // HttpURLConnection engine: no OkHttp/Okio in the APK (Media3 streams over HttpURLConnection too)
+        androidMain.dependencies { implementation("io.ktor:ktor-client-android:3.1.1") }
         jsMain.dependencies { implementation("io.ktor:ktor-client-js:3.1.1") }
     }
 }
