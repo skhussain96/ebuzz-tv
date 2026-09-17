@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import world.ebuzz.tv.R
 import world.ebuzz.tv.container
 import world.ebuzz.tv.databinding.ActivityChannelsBinding
+import world.ebuzz.tv.domain.model.MovieSort
 import world.ebuzz.tv.domain.model.ResumePoint
 import world.ebuzz.tv.presentation.common.DigitEntry
 import world.ebuzz.tv.presentation.common.applyOrientation
@@ -67,19 +68,26 @@ class HomeActivity : AppCompatActivity() {
         if (shownTab != s.moviesTab) {
             shownTab = s.moviesTab
             b.tabLive.isSelected = !s.moviesTab; b.tabMovies.isSelected = s.moviesTab
-            b.chipScroll.visibility = if (s.moviesTab) View.VISIBLE else View.GONE
+            b.filters.visibility = if (s.moviesTab) View.VISIBLE else View.GONE
             b.search.hint = if (s.moviesTab) "Search movies" else "Search channels or number"
             if (b.search.text.toString() != s.query) b.search.setText(s.query)
             b.grid.adapter = if (s.moviesTab) movieAdapter else channelAdapter
             (b.grid.layoutManager as GridLayoutManager).spanCount = spanCount()
         }
         if (s.moviesTab) movieAdapter.submitList(s.movies) else channelAdapter.submitList(s.channels)
-        renderChips(s)
+        renderSorts(s); renderChips(s)
 
         b.status.visibility = if (s.loading || s.error || s.empty) View.VISIBLE else View.GONE
         b.status.text = when { s.error -> getString(R.string.error); s.empty -> "Nothing found"; else -> getString(R.string.loading) }
 
         s.focusChannelNumber?.let { n -> vm.consumeFocus(); if (!s.moviesTab) focusTile(s.channels.indexOfFirst { it.number == n }.coerceAtLeast(0)) }
+    }
+
+    private fun renderSorts(s: HomeUiState) {
+        if (b.sorts.childCount == 0) MovieSort.entries.forEach { sort ->
+            b.sorts.addView(chip(sort.label, null) { vm.selectSort(sort) }.apply { tag = sort })
+        }
+        for (i in 0 until b.sorts.childCount) b.sorts.getChildAt(i).let { it.isSelected = it.tag == s.sort }
     }
 
     private fun renderChips(s: HomeUiState) {

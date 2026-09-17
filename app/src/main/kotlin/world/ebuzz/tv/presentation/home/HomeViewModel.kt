@@ -15,6 +15,7 @@ import world.ebuzz.tv.domain.model.HomeState
 import world.ebuzz.tv.domain.model.Movie
 import world.ebuzz.tv.domain.model.MovieCategory
 import world.ebuzz.tv.domain.model.MovieQuery
+import world.ebuzz.tv.domain.model.MovieSort
 import world.ebuzz.tv.domain.model.ResumePoint
 
 data class HomeUiState(
@@ -25,6 +26,7 @@ data class HomeUiState(
     val movies: List<Movie> = emptyList(),
     val categories: List<MovieCategory> = emptyList(),
     val categoryId: Int? = null,
+    val sort: MovieSort = MovieSort.ADDED,
     val resume: ResumePoint? = null,
     val loading: Boolean = false,
     val error: Boolean = false,
@@ -42,7 +44,7 @@ class HomeViewModel(private val c: AppContainer, private val moviesAvailable: Bo
 
     init {
         val saved = c.getHomeState()
-        _state.update { it.copy(categories = c.getMovieCategories(), categoryId = saved.categoryId) }
+        _state.update { it.copy(categories = c.getMovieCategories(), categoryId = saved.categoryId, sort = saved.sort) }
         selectTab(moviesAvailable && saved.moviesTab)
     }
 
@@ -64,6 +66,12 @@ class HomeViewModel(private val c: AppContainer, private val moviesAvailable: Bo
     fun selectCategory(id: Int?) {
         if (id == _state.value.categoryId) return
         _state.update { it.copy(categoryId = id) }
+        persist(); reloadMovies()
+    }
+
+    fun selectSort(sort: MovieSort) {
+        if (sort == _state.value.sort) return
+        _state.update { it.copy(sort = sort) }
         persist(); reloadMovies()
     }
 
@@ -100,16 +108,19 @@ class HomeViewModel(private val c: AppContainer, private val moviesAvailable: Bo
         val s = _state.value
         _state.update { it.copy(loading = s.movies.isEmpty(), error = false) }
         movieJob = viewModelScope.launch {
-            runCatching { c.getMoviesPage(MovieQuery(page, s.categoryId, s.query)) }
+            runCatching { c.getMoviesPage(MovieQuery(page, s.categoryId, s.query, s.sort)) }     // text + category + sort, always together
                 .onSuccess { p ->
                     nextMoviePage = p.nextPage
-                    _state.update { it.copy(movies = it.movies + p.items, loading = false, empty = it.movies.isEmpty() && p.items.isEmpty()) }
+                    _state.update {
+                        val merged = (it.movies + p.items).let { all -> if (s.sort.rankedOnClient) c.rankByQuality(all) else all }
+                        it.copy(movies = merged, loading = false, empty = merged.isEmpty())
+                    }
                 }
                 .onFailure { _state.update { it.copy(loading = false, error = it.movies.isEmpty()) } }
         }
     }
 
-    private fun persist() = _state.value.let { c.saveHomeState(HomeState(it.moviesTab, it.categoryId)) }
+    private fun persist() = _state.value.let { c.saveHomeState(HomeState(it.moviesTab, it.categoryId, it.sort)) }
 
     private companion object { const val SEARCH_DEBOUNCE_MS = 400L }
 }

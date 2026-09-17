@@ -6,6 +6,7 @@ import world.ebuzz.tv.domain.model.Movie
 import world.ebuzz.tv.domain.model.MovieCategory
 import world.ebuzz.tv.domain.model.MoviePage
 import world.ebuzz.tv.domain.model.MovieQuery
+import world.ebuzz.tv.domain.model.MovieSort
 import world.ebuzz.tv.domain.model.ResumePoint
 import world.ebuzz.tv.domain.repository.MovieRepository
 import world.ebuzz.tv.domain.repository.PlaybackStore
@@ -13,6 +14,7 @@ import world.ebuzz.tv.domain.usecase.ContentPolicy
 import world.ebuzz.tv.domain.usecase.FilterChannels
 import world.ebuzz.tv.domain.usecase.GetMovieProgress
 import world.ebuzz.tv.domain.usecase.GetMoviesPage
+import world.ebuzz.tv.domain.usecase.RankByQuality
 import world.ebuzz.tv.domain.usecase.SaveMovieProgress
 import world.ebuzz.tv.domain.usecase.StepChannel
 import kotlin.test.Test
@@ -82,6 +84,17 @@ class UseCaseTest {
         val page = GetMoviesPage(repo, ContentPolicy())(MovieQuery(1, null, ""))
         assertEquals(listOf(2), page.items.map { it.id }); assertNull(page.nextPage)
         assertEquals("", page.items[0].description)
+    }
+
+    @Test fun qualityRankingIsStableAndPutsUnknownLast() {
+        val list = listOf(movie(1).copy(quality = "TS"), movie(2).copy(quality = "BRRip"), movie(3).copy(quality = "Weird"),
+            movie(4).copy(quality = "HD Rip"), movie(5).copy(quality = "BRRip"))
+        assertEquals(listOf(2, 5, 4, 1, 3), RankByQuality()(list).map { it.id })
+    }
+
+    @Test fun everySortHasAnApiOrderAndOnlyQualityIsClientRanked() {
+        assertTrue(MovieSort.entries.all { it.apiOrder.isNotBlank() })
+        assertEquals(listOf(MovieSort.QUALITY), MovieSort.entries.filter { it.rankedOnClient })
     }
 
     @Test fun progressIsKeptOnlyMidMovie() {

@@ -17,6 +17,7 @@ import world.ebuzz.tv.domain.usecase.GetMovieProgress
 import world.ebuzz.tv.domain.usecase.GetMoviesPage
 import world.ebuzz.tv.domain.usecase.GetResumePoint
 import world.ebuzz.tv.domain.usecase.GetVolume
+import world.ebuzz.tv.domain.usecase.RankByQuality
 import world.ebuzz.tv.domain.usecase.SaveHomeState
 import world.ebuzz.tv.domain.usecase.SaveMovieProgress
 import world.ebuzz.tv.domain.usecase.SetLastChannel
@@ -37,6 +38,7 @@ class AppContainer(context: Context) {
     val stepChannel = StepChannel()
     val getMovieCategories by lazy { GetMovieCategories(movieRepo) }
     val getMoviesPage by lazy { GetMoviesPage(movieRepo, policy) }
+    val rankByQuality = RankByQuality()
 
     val getLastChannel by lazy { GetLastChannel(playback) }
     val setLastChannel by lazy { SetLastChannel(playback) }

@@ -24,7 +24,7 @@ class MovieRepositoryImpl(private val api: EbuzzApi) : MovieRepository {
     override suspend fun page(query: MovieQuery): MoviePage {
         val text = query.text.trim()
         val path = buildString {
-            append("movies?includes=categories,mirrors&limit=$PAGE_SIZE&page=${query.page}&order_by=adate,desc|id,desc")
+            append("movies?includes=categories,mirrors&limit=$PAGE_SIZE&page=${query.page}&order_by=${query.sort.apiOrder}")
             query.categoryId?.let { append("&category=$it") }
             if (text.isNotEmpty()) append("&title=*").append(text.encodeURLParameter()).append("*")
         }

@@ -9,6 +9,7 @@ import world.ebuzz.tv.data.remote.EbuzzApi
 import world.ebuzz.tv.data.repository.ChannelRepositoryImpl
 import world.ebuzz.tv.data.repository.MovieRepositoryImpl
 import world.ebuzz.tv.domain.model.MovieQuery
+import world.ebuzz.tv.domain.model.MovieSort
 import world.ebuzz.tv.domain.usecase.ContentPolicy
 import world.ebuzz.tv.domain.usecase.GetChannels
 import world.ebuzz.tv.domain.usecase.GetMovieCategories
@@ -43,8 +44,9 @@ class EbuzzSdk(baseUrl: String) {
         getChannels().map { JsChannel(it.id, it.number, it.title, it.poster, it.streamUrl) }.toTypedArray()
     }
 
-    fun moviesPage(page: Int, categoryId: Int?, text: String): Promise<JsMoviePage> = GlobalScope.promise {
-        val p = getMoviesPage(MovieQuery(page, categoryId, text))
+    /** [sort] is a [MovieSort] name: ADDED, YEAR, TITLE, RATING, VIEWS, QUALITY. Search, category and sort combine. */
+    fun moviesPage(page: Int, categoryId: Int?, text: String, sort: String = "ADDED"): Promise<JsMoviePage> = GlobalScope.promise {
+        val p = getMoviesPage(MovieQuery(page, categoryId, text, MovieSort.entries.firstOrNull { it.name == sort } ?: MovieSort.ADDED))
         JsMoviePage(p.items.map { JsMovie(it.id, it.title, it.poster, it.year, it.rating, it.quality, it.streamUrl) }.toTypedArray(), p.nextPage)
     }
 }

@@ -1,9 +1,21 @@
 package world.ebuzz.tv.domain.usecase
 
+import world.ebuzz.tv.domain.model.Movie
 import world.ebuzz.tv.domain.model.MovieCategory
 import world.ebuzz.tv.domain.model.MoviePage
 import world.ebuzz.tv.domain.model.MovieQuery
 import world.ebuzz.tv.domain.repository.MovieRepository
+
+/** BluRay first, cam rips last; unknown labels sink to the end. Stable, so API order is kept within a rank. */
+class RankByQuality {
+    operator fun invoke(movies: List<Movie>): List<Movie> = movies.sortedBy(::rank)
+
+    private fun rank(m: Movie): Int = LADDER.indexOf(m.quality.lowercase().filterNot(Char::isWhitespace)).let { if (it < 0) LADDER.size else it }
+
+    private companion object {
+        val LADDER = listOf("bluray", "brrip", "bdrip", "webdl", "web-dl", "webrip", "hdrip", "hdtv", "dvdrip", "master", "dvdscr", "hdcam", "hdts", "cam", "ts")
+    }
+}
 
 class GetMovieCategories(private val repo: MovieRepository) {
     operator fun invoke(): List<MovieCategory> = repo.categories()

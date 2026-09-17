@@ -36,6 +36,10 @@ sexual-violence terms; also applied to channel titles. The web keeps a mirrored 
 
 ## Behaviour to preserve
 
+- Movie filters always combine: `MovieQuery` carries search text AND category AND `MovieSort` in one request, and the
+  API applies all three across the whole catalogue. Only `MovieSort.QUALITY` is ranked on the client
+  (`RankByQuality`), because quality is free text upstream. Sort and category are persisted with the home state.
+
 - Channels are fetched in API id order so channel numbers are stable; digits jump to a number.
 - Remote: LEFT/RIGHT prev/next channel (±10 s in a movie), UP/DOWN volume, OK pause, long-press OK cycles audio,
   BACK exits. Touch: swipe left/right = next/previous channel (±30 s in a movie), vertical drag = volume,

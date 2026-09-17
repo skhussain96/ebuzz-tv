@@ -3,6 +3,7 @@ package world.ebuzz.tv.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import world.ebuzz.tv.domain.model.HomeState
+import world.ebuzz.tv.domain.model.MovieSort
 import world.ebuzz.tv.domain.model.ResumePoint
 import world.ebuzz.tv.domain.repository.HomeStateStore
 import world.ebuzz.tv.domain.repository.PlaybackStore
@@ -39,6 +40,10 @@ class PrefsPlaybackStore(context: Context) : PlaybackStore {
 
 class PrefsHomeStateStore(context: Context) : HomeStateStore {
     private val prefs = context.ebuzzPrefs()
-    override fun load() = HomeState(prefs.getBoolean("tabMovies", false), prefs.getInt("category", -1).takeIf { it >= 0 })
-    override fun save(state: HomeState) = prefs.edit().putBoolean("tabMovies", state.moviesTab).putInt("category", state.categoryId ?: -1).apply()
+    override fun load() = HomeState(
+        prefs.getBoolean("tabMovies", false), prefs.getInt("category", -1).takeIf { it >= 0 },
+        MovieSort.entries.firstOrNull { it.name == prefs.getString("sort", null) } ?: MovieSort.ADDED,
+    )
+    override fun save(state: HomeState) = prefs.edit().putBoolean("tabMovies", state.moviesTab)
+        .putInt("category", state.categoryId ?: -1).putString("sort", state.sort.name).apply()
 }

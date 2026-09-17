@@ -22,13 +22,26 @@
             android:hint="Search" android:textColorHint="@color/inkDim" android:textColor="@color/ink" android:textSize="16sp"
             android:inputType="text" android:imeOptions="actionSearch|flagNoExtractUi" android:maxLines="1" android:singleLine="true" />
 
-        <HorizontalScrollView
-            android:id="@+id/chipScroll"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:scrollbars="none" android:clipToPadding="false" android:paddingHorizontal="12dp" android:paddingTop="10dp"
-            android:visibility="gone">
-            <LinearLayout android:id="@+id/chips" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
-        </HorizontalScrollView>
+        <!-- Movies filters: every row narrows the same result set (search AND sort AND category) -->
+        <LinearLayout
+            android:id="@+id/filters"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
+            android:paddingTop="6dp" android:visibility="gone">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView style="@style/RowLabel" android:text="Sort" />
+                <HorizontalScrollView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                    android:scrollbars="none" android:clipToPadding="false" android:paddingVertical="4dp" android:paddingEnd="12dp">
+                    <LinearLayout android:id="@+id/sorts" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+                </HorizontalScrollView>
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView style="@style/RowLabel" android:text="Category" />
+                <HorizontalScrollView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                    android:scrollbars="none" android:clipToPadding="false" android:paddingVertical="4dp" android:paddingEnd="12dp">
+                    <LinearLayout android:id="@+id/chips" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+                </HorizontalScrollView>
+            </LinearLayout>
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/grid"
