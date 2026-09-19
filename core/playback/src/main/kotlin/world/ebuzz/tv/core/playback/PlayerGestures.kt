@@ -55,8 +55,8 @@ class PlayerGestures(
     })
 
     @SuppressLint("ClickableViewAccessibility")
-    fun attach(onAnyTouch: () -> Unit) = surface.setOnTouchListener { v, e ->
-        onAnyTouch()
+    fun attach(onAnyTouch: (MotionEvent) -> Unit) = surface.setOnTouchListener { v, e ->
+        onAnyTouch(e)
         val handled = detector.onTouchEvent(e)
         if (e.actionMasked == MotionEvent.ACTION_UP) { onRelease(); v.performClick() }
         handled

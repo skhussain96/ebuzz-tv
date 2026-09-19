@@ -109,3 +109,19 @@ Items (`HandOff`): live `{number,title}`, film `{id,title,url,pos}`, album `{id,
 Received items pass `ContentPolicy` before anything opens. Player "Play on" pushes and stops locally; the cast button
 on the home row pulls ("Continue from") and stops the source. `core:playback` knows nothing of `core:link` except the
 `HandOff` hooks.
+
+Editions differ in what they link: `linkKinds` in each flavor's `Sections.kt` (TV = `live` only). It is advertised as the
+NSD `kinds` attribute and enforced on both ends: the TV edition never offers, accepts or lists films/albums, its
+"Continue from" list shows a device only while that device is playing a channel, and "Play on" lists only peers that
+accept the item's kind. A `query` reply also carries `resume` (the film a device stopped part-way) so it can be finished
+elsewhere at the same position.
+
+## Behaviours that were bugs once (do not regress)
+
+- Start position travels with the media item (`setMediaItem(item, startPositionMs)`). A separate `seekTo()` after
+  `setMediaItem()` is dropped across the MediaController, which silently broke Resume and film hand-off.
+- Volume is the device media stream (`AudioManager.STREAM_MUSIC`); player gain is used only when `isVolumeFixed`.
+- Vertical D-pad focus is row-based: screens and the home shell are `FocusColumn`s. Android's FocusFinder measures from
+  an EditText's caret and scores by centre distance, so it skips full-width rows (the Resume pill). Any new vertical
+  stack of rows must sit in a `FocusColumn`.
+- A selected tab still shows a focus ring (`tab_bg.xml` has a selected+focused state).

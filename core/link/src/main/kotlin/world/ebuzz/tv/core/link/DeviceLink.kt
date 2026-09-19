@@ -24,18 +24,22 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
-data class Peer(val id: String, val name: String, val host: String, val port: Int)
+data class Peer(val id: String, val name: String, val host: String, val port: Int, val kinds: Set<String>)
 
 // Every running copy of the app is both a sender and a receiver. Any number of phones and TVs can be on the Wi-Fi:
 // each advertises itself under a unique id, and the user always picks the target from a list.
 object DeviceLink {
     private const val TYPE = "_ebuzz._tcp."
+    val ALL_KINDS = setOf("live", "film", "album")
     private const val SEP = "~"                       // service name = "<display name>~<id>"
     private val io = Executors.newCachedThreadPool()
     private val main = Handler(Looper.getMainLooper())
 
     private lateinit var app: Application
     private lateinit var selfId: String
+    // what this edition deals in: the TV edition is live TV only, so it neither offers, accepts nor lists films and albums
+    var kinds: Set<String> = ALL_KINDS
+        private set
     private var installed = false
     private var started = 0
     private var server: ServerSocket? = null
@@ -50,9 +54,9 @@ object DeviceLink {
 
     private val nsd get() = app.getSystemService(Context.NSD_SERVICE) as NsdManager
 
-    fun install(application: Application) {
+    fun install(application: Application, kinds: Set<String> = ALL_KINDS) {
         if (installed) return
-        installed = true; app = application
+        installed = true; app = application; this.kinds = kinds
         val prefs = app.getSharedPreferences("link", Context.MODE_PRIVATE)
         selfId = prefs.getString("id", null) ?: UUID.randomUUID().toString().take(6).also { prefs.edit().putString("id", it).apply() }
         HandOff.onSendClick = { activity, payload -> DevicePicker.send(activity, payload) }
@@ -75,7 +79,7 @@ object DeviceLink {
         val socket = runCatching { ServerSocket(0) }.getOrNull() ?: return
         server = socket
         io.execute { while (!socket.isClosed) runCatching { socket.accept() }.onSuccess { s -> io.execute { serve(s) } } }
-        val info = NsdServiceInfo().apply { serviceName = deviceName() + SEP + selfId; serviceType = TYPE; port = socket.localPort }
+        val info = NsdServiceInfo().apply { serviceName = deviceName() + SEP + selfId; serviceType = TYPE; port = socket.localPort; setAttribute("kinds", kinds.joinToString(",")) }
         registration = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(i: NsdServiceInfo) = Unit
             override fun onRegistrationFailed(i: NsdServiceInfo, e: Int) = Unit
@@ -112,7 +116,8 @@ object DeviceLink {
                 override fun onResolveFailed(i: NsdServiceInfo, e: Int) { done() }
                 override fun onServiceResolved(i: NsdServiceInfo) {
                     val host = i.host?.hostAddress
-                    if (host != null) { found[idOf(i.serviceName)] = Peer(idOf(i.serviceName), i.serviceName.substringBeforeLast(SEP), host, i.port); changed() }
+                    if (host != null) { val theirs = i.attributes["kinds"]?.let { String(it).split(",").toSet() } ?: ALL_KINDS      // a copy older than this field handles everything
+                        found[idOf(i.serviceName)] = Peer(idOf(i.serviceName), i.serviceName.substringBeforeLast(SEP), host, i.port, theirs); changed() }
                     done()
                 }
             })
@@ -129,7 +134,9 @@ object DeviceLink {
             it.soTimeout = 5000
             val msg = JSONObject(BufferedReader(InputStreamReader(it.getInputStream())).readLine() ?: return@use)
             val reply = when (msg.optString("cmd")) {
-                "query" -> JSONObject().put("now", HandOff.source?.snapshot() ?: JSONObject.NULL)
+                // "now" is what is on screen; "resume" is the film this device stopped part-way, so it can be finished elsewhere
+                "query" -> JSONObject().put("now", HandOff.source?.snapshot()?.takeIf(::handles) ?: JSONObject.NULL)
+                    .put("resume", app.container.getResumePoint()?.let { r -> HandOff.film(r.movieId, r.title, r.streamUrl, r.positionMs) }?.takeIf(::handles) ?: JSONObject.NULL)
                 "stop" -> { main.post { HandOff.source?.stop() }; JSONObject().put("ok", true) }
                 "play" -> JSONObject().put("ok", play(msg.optJSONObject("item")))
                 else -> JSONObject().put("ok", false)
@@ -139,8 +146,11 @@ object DeviceLink {
     }
 
     // a peer is just another device on the Wi-Fi, so what it sends goes through the same content policy as the catalogue
+    fun handles(item: JSONObject) = item.optString("kind") in kinds
+
     fun play(item: JSONObject?): Boolean {
         item ?: return false
+        if (!handles(item)) return false
         val c = app.container
         if (!c.policy.allows(HandOff.title(item), "", "")) return false
         val names = item.optJSONArray("names")

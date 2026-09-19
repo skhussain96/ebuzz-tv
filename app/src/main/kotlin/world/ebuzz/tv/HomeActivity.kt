@@ -27,7 +27,7 @@ class HomeActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         applyOrientation()
         b = ActivityHomeBinding.inflate(layoutInflater).also { setContentView(it.root) }
-        DeviceLink.install(application)
+        DeviceLink.install(application, linkKinds)
         b.btnDevices.setOnClickListener { DevicePicker.pull(this) }
         if (sections.size > 1) sections.forEachIndexed { i, s ->
             b.tabs.addView((layoutInflater.inflate(R.layout.view_tab, b.tabs, false) as TextView).apply {

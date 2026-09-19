@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.os.Build
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.SystemClock
 import android.os.Handler
@@ -124,7 +125,7 @@ class PlayerActivity : ComponentActivity() {
         player = c
         c.setVideoSurfaceView(b.surface)
         c.addListener(listener)
-        c.volume = vm.volume
+        applyVolume(deviceVolume() ?: vm.volume, show = false)
         when (val a = vm.args) {
             is PlayerArgs.AlbumArgs -> startAlbum(c, a)
             PlayerArgs.Attach -> if (c.mediaItemCount == 0) { finish(); return } else kind = MediaIds.kindOf(c.currentMediaItem)
@@ -216,8 +217,22 @@ class PlayerActivity : ComponentActivity() {
             .show()
     }
 
-    private fun setVolume(v: Float, persist: Boolean) { vm.setVolume(v, persist); player?.volume = vm.volume; overlay.volume(vm.volume) }
-    private fun stepVolume(dir: Int) = setVolume(((vm.volume * 10).roundToInt() + dir) / 10f, persist = true)
+    // Volume is the device's own media volume, so the phone/TV volume keys, the system slider and this screen agree.
+    // Only a device with fixed volume (some TVs and set-top boxes leave it to the amplifier) falls back to player gain.
+    private val audio by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
+    private val maxVolume by lazy { audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
+    private fun deviceVolume(): Float? = if (audio.isVolumeFixed) null else audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume
+
+    private fun applyVolume(v: Float, show: Boolean = true) {
+        val level = v.coerceIn(0f, 1f)
+        if (audio.isVolumeFixed) { vm.setVolume(level, persist = true); player?.volume = level }
+        else { audio.setStreamVolume(AudioManager.STREAM_MUSIC, (level * maxVolume).roundToInt(), 0); player?.volume = 1f; vm.setVolume(level, persist = false) }
+        if (show) overlay.volume(deviceVolume() ?: level)
+    }
+    private fun setVolume(v: Float, persist: Boolean) = applyVolume(v)
+    private fun stepVolume(dir: Int) =
+        if (audio.isVolumeFixed) applyVolume(((vm.volume * 10).roundToInt() + dir) / 10f)
+        else applyVolume((audio.getStreamVolume(AudioManager.STREAM_MUSIC) + dir).toFloat() / maxVolume)
     private fun saveProgress() { val p = player ?: return; if (kind == PlayerKind.FILM) vm.saveProgress(p.currentPosition, p.duration) }
 
     // ---- input ----
@@ -247,8 +262,8 @@ class PlayerActivity : ComponentActivity() {
             onDoubleTap = { right -> if (kind == PlayerKind.FILM) seek(if (right) 10_000 else -10_000) else step(if (right) 1 else -1) },
             onSwipe = { dir -> if (kind == PlayerKind.FILM) seek(dir * 30_000L) else step(dir) },
             onVerticalDrag = { f -> setVolume(dragStartVolume + f, persist = false) },
-            onRelease = { vm.setVolume(vm.volume, persist = true); dragStartVolume = vm.volume },
-        ).attach(onAnyTouch = { if (!overlay.touchUi) { overlay.touchUi = true; dragStartVolume = vm.volume } })
+            onRelease = {},
+        ).attach(onAnyTouch = { e -> overlay.touchUi = true; if (e.actionMasked == MotionEvent.ACTION_DOWN) dragStartVolume = deviceVolume() ?: vm.volume })
     }
 
     /** Mouse wheel = volume; pointer movement reveals the buttons. */

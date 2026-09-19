@@ -30,10 +30,11 @@ object MediaIds {
 class LoadStream {
     operator fun invoke(p: Player, item: NowPlaying) {
         p.stop(); p.clearMediaItems()
+        // the start position travels with the item: across a MediaController a separate seekTo() can land before the
+        // session has resolved the item, and is then thrown away when the item arrives
         p.setMediaItem(MediaItem.Builder().setMediaId(item.mediaId).setUri(item.streamUrl)
-            .setMediaMetadata(MediaMetadata.Builder().setTitle(item.title).build()).build())
+            .setMediaMetadata(MediaMetadata.Builder().setTitle(item.title).build()).build(), item.startPositionMs)
         p.prepare()
-        if (item.startPositionMs > 0) p.seekTo(item.startPositionMs)
         p.play()
     }
 }
