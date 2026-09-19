@@ -53,12 +53,14 @@ class LiveFragment : Fragment(), KeyHandler {
 
     private fun render(s: LiveUiState) {
         adapter.submitList(s.channels)
+        b.shortcut.visibility = if (s.resume != null) View.VISIBLE else View.GONE
+        s.resume?.let { ch -> b.shortcut.text = "▶  Resume ${ch.number} · ${ch.title}"; b.shortcut.setOnClickListener { open(ch.number) } }
         when { s.error -> b.state.showError(); s.loading -> b.state.showLoading(); s.channels.isEmpty() && s.query.isNotBlank() -> b.state.showEmpty("No channel matches"); else -> b.state.hide() }
         s.focusNumber?.let { n -> vm.consumeFocus(); focusTile(s.channels.indexOfFirst { it.number == n }.coerceAtLeast(0)) }
     }
 
     /** Coming back to a failed screen (e.g. the network returned) tries again by itself. */
-    override fun onResume() { super.onResume(); if (vm.state.value.error) vm.load() }
+    override fun onResume() { super.onResume(); vm.refreshResume(); if (vm.state.value.error) vm.load() }
 
     private fun focusTile(pos: Int, attempt: Int = 0) {
         val grid = _b?.grid ?: return
