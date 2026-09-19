@@ -98,3 +98,14 @@ No AppCompat, no media3-ui, no Coil, no OkHttp. Theme is platform Material; acti
 `core/ui/ImageLoader.kt` (`ImageView.loadUrl`); Ktor uses the `android` engine; `PlaybackService` names only the
 MP4/MKV/MP3/ADTS extractors. English resources only. Icons are vectors - do not add PNGs or icon libraries.
 On TV the search field never opens the keyboard on focus, only on OK (`keyboardOnlyOnClick`).
+
+## Device link (`core:link`) - play on / continue from another device
+
+Every running copy (phone or TV, either edition) advertises `_ebuzz._tcp` over NSD as `<device name>~<6-char id>` on a
+random port and browses for the others, only while the app is on screen. Assume many phones and many TVs on one Wi-Fi:
+peers are a list, the user always picks from `DevicePicker`, a device filters itself out by id, resolves are queued.
+Protocol is one JSON line each way: `{"cmd":"query"}` -> `{"now":item|null}`, `{"cmd":"play","item":…}`, `{"cmd":"stop"}`.
+Items (`HandOff`): live `{number,title}`, film `{id,title,url,pos}`, album `{id,title,poster,names[],urls[]}`.
+Received items pass `ContentPolicy` before anything opens. Player "Play on" pushes and stops locally; the cast button
+on the home row pulls ("Continue from") and stops the source. `core:playback` knows nothing of `core:link` except the
+`HandOff` hooks.

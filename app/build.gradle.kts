@@ -11,8 +11,8 @@ android {
         applicationId = "world.ebuzz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.6.6"
+        versionCode = 15
+        versionName = "1.7.0"
     }
 
     // Two editions from one codebase. What differs is which feature modules each one links (see dependencies)
@@ -62,6 +62,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:data"))
     implementation(project(":core:playback"))       // contributes the player activity + service via manifest merge
+    implementation(project(":core:link"))
     implementation(project(":feature:live"))
 
     // Only the Entertainment edition links these modules; the TV edition never sees them.

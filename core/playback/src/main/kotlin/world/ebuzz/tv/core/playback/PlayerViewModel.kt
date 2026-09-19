@@ -75,5 +75,12 @@ class PlayerViewModel(private val c: AppContainer, val args: PlayerArgs) : ViewM
         c.saveMovieProgress(ResumePoint(film.id, film.title, film.streamUrl, positionMs), durationMs)
     }
 
+    fun handOff(positionMs: Long) = when (args) {
+        is PlayerArgs.Film -> HandOff.film(args.id, args.title, args.streamUrl, positionMs)
+        is PlayerArgs.AlbumArgs -> HandOff.album(args)
+        is PlayerArgs.Live -> channels.getOrNull(index)?.let { HandOff.live(it.number, "${it.number} · ${it.title}") }
+        PlayerArgs.Attach -> null
+    }
+
     fun onEnded() { (args as? PlayerArgs.Film)?.let { c.clearMovieProgress(it.id) } }
 }

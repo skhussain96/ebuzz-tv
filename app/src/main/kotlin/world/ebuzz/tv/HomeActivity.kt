@@ -7,6 +7,8 @@ import android.widget.TextView
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import world.ebuzz.tv.core.data.container
+import world.ebuzz.tv.core.link.DeviceLink
+import world.ebuzz.tv.core.link.DevicePicker
 import world.ebuzz.tv.core.ui.HomeSection
 import world.ebuzz.tv.core.ui.KeyHandler
 import world.ebuzz.tv.core.ui.applyOrientation
@@ -25,11 +27,12 @@ class HomeActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         applyOrientation()
         b = ActivityHomeBinding.inflate(layoutInflater).also { setContentView(it.root) }
-        b.tabs.visibility = if (sections.size > 1) View.VISIBLE else View.GONE
-        sections.forEach { s ->
+        DeviceLink.install(application)
+        b.btnDevices.setOnClickListener { DevicePicker.pull(this) }
+        if (sections.size > 1) sections.forEachIndexed { i, s ->
             b.tabs.addView((layoutInflater.inflate(R.layout.view_tab, b.tabs, false) as TextView).apply {
                 text = s.title; tag = s.id; setOnClickListener { show(s) }
-            })
+            }, i)
         }
         show(sections.firstOrNull { it.id == container.sections.last } ?: sections.first())
     }

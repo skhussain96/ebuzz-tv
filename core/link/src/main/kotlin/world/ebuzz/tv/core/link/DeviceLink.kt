@@ -1,0 +1,167 @@
+package world.ebuzz.tv.core.link
+
+import android.app.Activity
+import android.app.Application
+import android.content.Context
+import android.content.Intent
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import org.json.JSONObject
+import world.ebuzz.tv.core.data.container
+import world.ebuzz.tv.core.playback.HandOff
+import world.ebuzz.tv.domain.model.ResumePoint
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.InetSocketAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+
+data class Peer(val id: String, val name: String, val host: String, val port: Int)
+
+// Every running copy of the app is both a sender and a receiver. Any number of phones and TVs can be on the Wi-Fi:
+// each advertises itself under a unique id, and the user always picks the target from a list.
+object DeviceLink {
+    private const val TYPE = "_ebuzz._tcp."
+    private const val SEP = "~"                       // service name = "<display name>~<id>"
+    private val io = Executors.newCachedThreadPool()
+    private val main = Handler(Looper.getMainLooper())
+
+    private lateinit var app: Application
+    private lateinit var selfId: String
+    private var installed = false
+    private var started = 0
+    private var server: ServerSocket? = null
+    private var registration: NsdManager.RegistrationListener? = null
+    private var discovery: NsdManager.DiscoveryListener? = null
+    private val resolveQueue = ArrayDeque<NsdServiceInfo>()
+    private var resolving = false
+
+    private val found = ConcurrentHashMap<String, Peer>()
+    val peers: List<Peer> get() = found.values.sortedBy { it.name.lowercase() }
+    var onPeersChanged: (() -> Unit)? = null
+
+    private val nsd get() = app.getSystemService(Context.NSD_SERVICE) as NsdManager
+
+    fun install(application: Application) {
+        if (installed) return
+        installed = true; app = application
+        val prefs = app.getSharedPreferences("link", Context.MODE_PRIVATE)
+        selfId = prefs.getString("id", null) ?: UUID.randomUUID().toString().take(6).also { prefs.edit().putString("id", it).apply() }
+        HandOff.onSendClick = { activity, payload -> DevicePicker.send(activity, payload) }
+        app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityStarted(a: Activity) { if (started++ == 0) start() }
+            override fun onActivityStopped(a: Activity) { if (--started == 0) stop() }
+            override fun onActivityCreated(a: Activity, b: Bundle?) = Unit
+            override fun onActivityResumed(a: Activity) = Unit
+            override fun onActivityPaused(a: Activity) = Unit
+            override fun onActivitySaveInstanceState(a: Activity, b: Bundle) = Unit
+            override fun onActivityDestroyed(a: Activity) = Unit
+        })
+    }
+
+    private fun deviceName(): String =
+        (Settings.Global.getString(app.contentResolver, "device_name") ?: Build.MODEL).replace(SEP, " ").take(40)
+
+    // only while the app is on screen: a received "play" opens the player, which Android allows only from the foreground
+    private fun start() {
+        val socket = runCatching { ServerSocket(0) }.getOrNull() ?: return
+        server = socket
+        io.execute { while (!socket.isClosed) runCatching { socket.accept() }.onSuccess { s -> io.execute { serve(s) } } }
+        val info = NsdServiceInfo().apply { serviceName = deviceName() + SEP + selfId; serviceType = TYPE; port = socket.localPort }
+        registration = object : NsdManager.RegistrationListener {
+            override fun onServiceRegistered(i: NsdServiceInfo) = Unit
+            override fun onRegistrationFailed(i: NsdServiceInfo, e: Int) = Unit
+            override fun onServiceUnregistered(i: NsdServiceInfo) = Unit
+            override fun onUnregistrationFailed(i: NsdServiceInfo, e: Int) = Unit
+        }.also { runCatching { nsd.registerService(info, NsdManager.PROTOCOL_DNS_SD, it) } }
+        discovery = object : NsdManager.DiscoveryListener {
+            override fun onServiceFound(i: NsdServiceInfo) { if (idOf(i.serviceName) != selfId) main.post { resolveQueue.addLast(i); resolveNext() } }
+            override fun onServiceLost(i: NsdServiceInfo) { if (found.remove(idOf(i.serviceName)) != null) changed() }
+            override fun onDiscoveryStarted(t: String) = Unit
+            override fun onDiscoveryStopped(t: String) = Unit
+            override fun onStartDiscoveryFailed(t: String, e: Int) = Unit
+            override fun onStopDiscoveryFailed(t: String, e: Int) = Unit
+        }.also { runCatching { nsd.discoverServices(TYPE, NsdManager.PROTOCOL_DNS_SD, it) } }
+    }
+
+    private fun stop() {
+        runCatching { server?.close() }; server = null
+        registration?.let { runCatching { nsd.unregisterService(it) } }; registration = null
+        discovery?.let { runCatching { nsd.stopServiceDiscovery(it) } }; discovery = null
+        resolveQueue.clear(); resolving = false
+        found.clear(); changed()
+    }
+
+    // NsdManager resolves one service at a time; with several devices around the rest must wait their turn
+    @Suppress("DEPRECATION")
+    private fun resolveNext() {
+        if (resolving) return
+        val next = resolveQueue.removeFirstOrNull() ?: return
+        resolving = true
+        val done = { main.post { resolving = false; resolveNext() } }
+        runCatching {
+            nsd.resolveService(next, object : NsdManager.ResolveListener {
+                override fun onResolveFailed(i: NsdServiceInfo, e: Int) { done() }
+                override fun onServiceResolved(i: NsdServiceInfo) {
+                    val host = i.host?.hostAddress
+                    if (host != null) { found[idOf(i.serviceName)] = Peer(idOf(i.serviceName), i.serviceName.substringBeforeLast(SEP), host, i.port); changed() }
+                    done()
+                }
+            })
+        }.onFailure { done() }
+    }
+
+    private fun idOf(serviceName: String) = serviceName.substringAfterLast(SEP).take(6)
+    private fun changed() { main.post { onPeersChanged?.invoke() } }
+
+    // ---- receiving ----
+
+    private fun serve(s: Socket) = runCatching {
+        s.use {
+            it.soTimeout = 5000
+            val msg = JSONObject(BufferedReader(InputStreamReader(it.getInputStream())).readLine() ?: return@use)
+            val reply = when (msg.optString("cmd")) {
+                "query" -> JSONObject().put("now", HandOff.source?.snapshot() ?: JSONObject.NULL)
+                "stop" -> { main.post { HandOff.source?.stop() }; JSONObject().put("ok", true) }
+                "play" -> JSONObject().put("ok", play(msg.optJSONObject("item")))
+                else -> JSONObject().put("ok", false)
+            }
+            it.getOutputStream().apply { write((reply.toString() + "\n").toByteArray()); flush() }
+        }
+    }
+
+    // a peer is just another device on the Wi-Fi, so what it sends goes through the same content policy as the catalogue
+    fun play(item: JSONObject?): Boolean {
+        item ?: return false
+        val c = app.container
+        if (!c.policy.allows(HandOff.title(item), "", "")) return false
+        val names = item.optJSONArray("names")
+        if (names != null && (0 until names.length()).any { !c.policy.allows(names.optString(it), "", "") }) return false
+        val intent = HandOff.intent(app, item) ?: return false
+        if (item.optString("kind") == "film" && item.optLong("pos") > 0)
+            c.saveMovieProgress(ResumePoint(item.optInt("id"), item.optString("title"), item.optString("url"), item.optLong("pos")), Long.MAX_VALUE)
+        main.post { app.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        return true
+    }
+
+    // ---- sending ----
+
+    fun request(peer: Peer, msg: JSONObject, onReply: (JSONObject?) -> Unit) = io.execute {
+        val reply = runCatching {
+            Socket().use { s ->
+                s.connect(InetSocketAddress(peer.host, peer.port), 2500); s.soTimeout = 4000
+                s.getOutputStream().apply { write((msg.toString() + "\n").toByteArray()); flush() }
+                BufferedReader(InputStreamReader(s.getInputStream())).readLine()?.let(::JSONObject)
+            }
+        }.getOrNull()
+        main.post { onReply(reply) }
+    }
+}

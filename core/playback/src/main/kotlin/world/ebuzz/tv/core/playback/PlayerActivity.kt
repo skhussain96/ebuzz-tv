@@ -94,7 +94,7 @@ class PlayerActivity : ComponentActivity() {
     private var ticks = 0
     private val tick = object : Runnable {
         override fun run() {
-            paintProgress()
+            paintProgress(); lastPosition = player?.currentPosition ?: 0L
             if (++ticks % 10 == 0) saveProgress()          // every 5 s, so a killed app still resumes
             ticker.postDelayed(this, 500)
         }
@@ -176,6 +176,11 @@ class PlayerActivity : ComponentActivity() {
 
     // ---- actions: each one is a use case plus feedback ----
     /** Next / previous: a channel on Live TV, a track in an album, ±10 s in a film. */
+    @Volatile private var lastPosition = 0L
+    private val handOffSource = object : HandOff.Source {
+        override fun snapshot() = vm.handOff(lastPosition)                 // called off the main thread
+        override fun stop() = finish()
+    }
     private var seekSum = 0L
     private var seekAt = 0L
 
@@ -221,6 +226,9 @@ class PlayerActivity : ComponentActivity() {
         b.btnNext.setOnClickListener { step(1) }
         b.btnPlay.setOnClickListener { playPause() }
         b.btnBack.setOnClickListener { finish() }
+        b.btnCast.visibility = if (HandOff.onSendClick != null && kind != PlayerKind.ATTACH) View.VISIBLE else View.GONE
+        b.btnCast.setOnClickListener { vm.handOff(lastPosition)?.let { item -> HandOff.onSendClick?.invoke(this, item) } }
+        HandOff.source = handOffSource
         b.btnAudio.setOnClickListener { nextAudio() }
         b.btnTracks.setOnClickListener { pickTrack() }
         b.seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -297,6 +305,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onStop() { super.onStop(); ticker.removeCallbacks(tick); saveProgress(); if (kind != PlayerKind.ALBUM) player?.pause() }
 
     override fun onDestroy() {
+        if (HandOff.source === handOffSource) HandOff.source = null
         ticker.removeCallbacksAndMessages(null); overlay.release()
         player?.let { p ->
             p.removeListener(listener)
