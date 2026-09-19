@@ -2,7 +2,9 @@ package world.ebuzz.tv.core.playback
 
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import world.ebuzz.tv.core.playback.databinding.ActivityPlayerBinding
 import world.ebuzz.tv.core.ui.R as UiR
@@ -38,9 +40,15 @@ internal class PlayerOverlay(private val b: ActivityPlayerBinding) {
         b.btnTracks.visibility = if (album) View.VISIBLE else View.GONE
     }
 
+    // buttons come up only on an explicit tap / pointer move (or on an album, whose screen is its controls)
+    fun reveal(playing: Boolean) {
+        if (touchUi) { b.controls.visibility = View.VISIBLE; b.topBar.visibility = View.VISIBLE }
+        show(playing)
+    }
+
     fun show(playing: Boolean) {
         b.osd.visibility = View.VISIBLE
-        if (touchUi) { b.controls.visibility = View.VISIBLE; b.topBar.visibility = View.VISIBLE }
+        if (touchUi && sticky) { b.controls.visibility = View.VISIBLE; b.topBar.visibility = View.VISIBLE }
         ui.removeCallbacks(hideBar)
         if (playing && !sticky) ui.postDelayed(hideBar, if (touchUi) 4000 else 3000)
     }
@@ -52,7 +60,10 @@ internal class PlayerOverlay(private val b: ActivityPlayerBinding) {
 
     fun hideButtons() { touchUi = false; b.controls.visibility = View.GONE; b.topBar.visibility = View.GONE }
 
-    fun hint(text: String) {
+    fun hint(text: String, side: Int = 0) {
+        (b.hint.layoutParams as FrameLayout.LayoutParams).gravity =
+            Gravity.CENTER_VERTICAL or (if (side < 0) Gravity.START else if (side > 0) Gravity.END else Gravity.CENTER_HORIZONTAL)
+        b.hint.requestLayout()
         b.hint.text = text; b.hint.visibility = View.VISIBLE
         ui.removeCallbacks(hideHint); ui.postDelayed(hideHint, 700)
     }

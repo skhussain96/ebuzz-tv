@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import android.view.InputDevice
@@ -175,18 +176,26 @@ class PlayerActivity : ComponentActivity() {
 
     // ---- actions: each one is a use case plus feedback ----
     /** Next / previous: a channel on Live TV, a track in an album, ±10 s in a film. */
+    private var seekSum = 0L
+    private var seekAt = 0L
+
     private fun step(dir: Int) {
         val p = player ?: return
         when (kind) {
             PlayerKind.FILM -> seek(dir * 10_000L)
             PlayerKind.ALBUM -> overlay.hint(if (stepAlbumTrack(p, dir) == null) (if (dir > 0) "Last track" else "First track") else if (dir > 0) "Next  ›" else "‹  Previous")
-            else -> { overlay.hint(if (dir > 0) "Next  ›" else "‹  Previous"); vm.stepChannel(dir) }
+            else -> vm.stepChannel(dir)
         }
     }
 
     private fun seek(ms: Long) {
         val p = player ?: return
-        if (seekBy(p, ms)) { overlay.hint((if (ms > 0) "+" else "−") + "${abs(ms) / 1000}s"); paintProgress(); overlay.show(p.playWhenReady) }
+        if (!seekBy(p, ms)) return
+        val now = SystemClock.uptimeMillis()
+        seekSum = if (now - seekAt < 900 && (seekSum > 0) == (ms > 0)) seekSum + ms else ms
+        seekAt = now
+        overlay.hint((if (seekSum > 0) "+" else "−") + "${abs(seekSum) / 1000}s", if (ms > 0) 1 else -1)
+        paintProgress(); if (overlay.controlsVisible) overlay.show(p.playWhenReady)
     }
 
     private fun playPause() { val p = player ?: return; togglePlay(p); overlay.show(p.playWhenReady) }
@@ -226,8 +235,8 @@ class PlayerActivity : ComponentActivity() {
         })
         PlayerGestures(
             surface = b.root,
-            onTap = { if (overlay.controlsVisible) overlay.hideNow() else overlay.show(player?.playWhenReady == true) },
-            onDoubleTap = { right -> if (kind == PlayerKind.LIVE) playPause() else seek(if (right) 10_000 else -10_000) },
+            onTap = { if (overlay.controlsVisible) overlay.hideNow() else overlay.reveal(player?.playWhenReady == true) },
+            onDoubleTap = { right -> if (kind == PlayerKind.FILM) seek(if (right) 10_000 else -10_000) else step(if (right) 1 else -1) },
             onSwipe = { dir -> if (kind == PlayerKind.FILM) seek(dir * 30_000L) else step(dir) },
             onVerticalDrag = { f -> setVolume(dragStartVolume + f, persist = false) },
             onRelease = { vm.setVolume(vm.volume, persist = true); dragStartVolume = vm.volume },
@@ -238,7 +247,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onGenericMotionEvent(e: MotionEvent): Boolean {
         if (e.isFromSource(InputDevice.SOURCE_CLASS_POINTER)) when (e.actionMasked) {
             MotionEvent.ACTION_SCROLL -> { stepVolume(if (e.getAxisValue(MotionEvent.AXIS_VSCROLL) > 0) 1 else -1); return true }
-            MotionEvent.ACTION_HOVER_MOVE -> if (!overlay.controlsVisible) { overlay.touchUi = true; overlay.show(player?.playWhenReady == true) }
+            MotionEvent.ACTION_HOVER_MOVE -> if (!overlay.controlsVisible) { overlay.touchUi = true; overlay.reveal(player?.playWhenReady == true) }
         }
         return super.onGenericMotionEvent(e)
     }

@@ -104,7 +104,7 @@
 
     <!-- brief gesture feedback: "+10s", "Next ›" -->
     <TextView
-        android:id="@+id/hint"
+        android:id="@+id/hint" android:layout_marginHorizontal="56dp"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center"
         android:background="@drawable/overlay_bg" android:paddingHorizontal="22dp" android:paddingVertical="10dp"
         android:textColor="@color/ink" android:textSize="20sp" android:textStyle="bold" android:visibility="gone" />

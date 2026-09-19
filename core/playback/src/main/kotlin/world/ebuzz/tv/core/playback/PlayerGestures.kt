@@ -20,11 +20,19 @@ class PlayerGestures(
 ) {
     private var axis = 0            // 0 undecided, 1 horizontal, 2 vertical
     private var dragY = 0f
+    private var lastDouble = 0L
+    private var lastRight = false
+    private var swallowTap = false
 
     private val detector = GestureDetector(surface.context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean { axis = 0; dragY = 0f; return true }
-        override fun onSingleTapConfirmed(e: MotionEvent): Boolean { onTap(); return true }
-        override fun onDoubleTap(e: MotionEvent): Boolean { onDoubleTap(e.x > surface.width / 2f); return true }
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean { if (swallowTap) swallowTap = false else onTap(); return true }
+        override fun onDoubleTap(e: MotionEvent): Boolean { lastRight = e.x > surface.width / 2f; lastDouble = e.eventTime; onDoubleTap(lastRight); return true }
+        // keep tapping the same side after a double tap and every tap counts, like MX Player
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            if (e.eventTime - lastDouble > REPEAT_MS || (e.x > surface.width / 2f) != lastRight) return false
+            lastDouble = e.eventTime; swallowTap = true; onDoubleTap(lastRight); return true
+        }
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {
             if (e1 == null) return false
@@ -54,5 +62,5 @@ class PlayerGestures(
         handled
     }
 
-    private companion object { const val SLOP_PX = 24; const val MIN_SWIPE_FRACTION = 0.12f }
+    private companion object { const val SLOP_PX = 24; const val REPEAT_MS = 700L; const val MIN_SWIPE_FRACTION = 0.12f }
 }
