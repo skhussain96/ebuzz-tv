@@ -21,14 +21,14 @@ object DevicePicker {
     }
 
     // "Play on…": hand what is on this screen to another device, then stop here
-    fun send(activity: Activity, item: JSONObject) = open(activity, "Play on", query = false, accepts = { item.optString("kind") in it.kinds }) { row, close ->
+    fun send(activity: Activity, item: JSONObject) = open(activity, "Play on", query = false, accepts = { it.tv && item.optString("kind") in it.kinds }) { row, close ->
         DeviceLink.request(row.peer, JSONObject().put("cmd", "play").put("item", item)) { reply ->
             if (reply?.optBoolean("ok") == true) { close(); HandOff.source?.stop() } else toast(activity, "${row.peer.name} did not respond")
         }
     }
 
-    // "Continue here": pull whatever another device is playing, then stop it there
-    fun pull(activity: Activity) = open(activity, "Continue from", query = true) { row, close ->
+    // On a TV: "Continue from" pulls what a phone is playing (or the film it stopped), then stops it there
+    fun pull(activity: Activity) = open(activity, "Continue from", query = true, accepts = { !it.tv }) { row, close ->
         val item = row.item ?: return@open toast(activity, "Nothing to continue on ${row.peer.name}")
         if (!DeviceLink.play(item)) return@open toast(activity, "Can't play that here")
         if (row.now != null) DeviceLink.request(row.peer, JSONObject().put("cmd", "stop")) {}
@@ -56,7 +56,7 @@ object DevicePicker {
                 }
             }
             rows.clear(); rows.addAll(if (liveOnly) all.filter { it.now != null } else all)
-            dialog.setTitle(when { rows.isNotEmpty() -> title; liveOnly && all.any { it.asked } -> "$title · no device is playing TV"; else -> "$title · looking for devices…" })
+            dialog.setTitle(when { rows.isNotEmpty() -> title; liveOnly && all.any { it.asked } -> "$title · no device is playing TV"; query -> "$title · looking for phones…"; else -> "$title · looking for TVs…" })
             adapter.notifyDataSetChanged()
         }
         DeviceLink.onPeersChanged = refresh

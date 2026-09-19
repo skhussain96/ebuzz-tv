@@ -28,7 +28,9 @@ class HomeActivity : FragmentActivity() {
         applyOrientation()
         b = ActivityHomeBinding.inflate(layoutInflater).also { setContentView(it.root) }
         DeviceLink.install(application, linkKinds)
+        b.btnDevices.visibility = if (DeviceLink.isTvDevice) View.VISIBLE else View.GONE      // a phone casts from its player; only a TV pulls
         b.btnDevices.setOnClickListener { DevicePicker.pull(this) }
+        b.tabs.visibility = if (sections.size > 1 || DeviceLink.isTvDevice) View.VISIBLE else View.GONE
         if (sections.size > 1) sections.forEachIndexed { i, s ->
             b.tabs.addView((layoutInflater.inflate(R.layout.view_tab, b.tabs, false) as TextView).apply {
                 text = s.title; tag = s.id; setOnClickListener { show(s) }

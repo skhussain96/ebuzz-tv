@@ -14,6 +14,7 @@ import android.provider.Settings
 import org.json.JSONObject
 import world.ebuzz.tv.core.data.container
 import world.ebuzz.tv.core.playback.HandOff
+import world.ebuzz.tv.core.ui.isTv
 import world.ebuzz.tv.domain.model.ResumePoint
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -24,10 +25,11 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
-data class Peer(val id: String, val name: String, val host: String, val port: Int, val kinds: Set<String>)
+data class Peer(val id: String, val name: String, val host: String, val port: Int, val kinds: Set<String>, val tv: Boolean)
 
-// Every running copy of the app is both a sender and a receiver. Any number of phones and TVs can be on the Wi-Fi:
-// each advertises itself under a unique id, and the user always picks the target from a list.
+// Casting goes one way only: from a phone or tablet (either edition) to a TV. A TV never sends and a phone never
+// receives; both ends enforce it. Any number of phones and TVs can be on the Wi-Fi: each advertises itself under a
+// unique id, and the user always picks the target from a list.
 object DeviceLink {
     private const val TYPE = "_ebuzz._tcp."
     val ALL_KINDS = setOf("live", "film", "album")
@@ -41,6 +43,8 @@ object DeviceLink {
     var kinds: Set<String> = ALL_KINDS
         private set
     private var installed = false
+    var isTvDevice = false
+        private set
     private var started = 0
     private var server: ServerSocket? = null
     private var registration: NsdManager.RegistrationListener? = null
@@ -56,10 +60,10 @@ object DeviceLink {
 
     fun install(application: Application, kinds: Set<String> = ALL_KINDS) {
         if (installed) return
-        installed = true; app = application; this.kinds = kinds
+        installed = true; app = application; this.kinds = kinds; isTvDevice = app.isTv
         val prefs = app.getSharedPreferences("link", Context.MODE_PRIVATE)
         selfId = prefs.getString("id", null) ?: UUID.randomUUID().toString().take(6).also { prefs.edit().putString("id", it).apply() }
-        HandOff.onSendClick = { activity, payload -> DevicePicker.send(activity, payload) }
+        if (!isTvDevice) HandOff.onSendClick = { activity, payload -> DevicePicker.send(activity, payload) }
         app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStarted(a: Activity) { if (started++ == 0) start() }
             override fun onActivityStopped(a: Activity) { if (--started == 0) stop() }
@@ -79,7 +83,7 @@ object DeviceLink {
         val socket = runCatching { ServerSocket(0) }.getOrNull() ?: return
         server = socket
         io.execute { while (!socket.isClosed) runCatching { socket.accept() }.onSuccess { s -> io.execute { serve(s) } } }
-        val info = NsdServiceInfo().apply { serviceName = deviceName() + SEP + selfId; serviceType = TYPE; port = socket.localPort; setAttribute("kinds", kinds.joinToString(",")) }
+        val info = NsdServiceInfo().apply { serviceName = deviceName() + SEP + selfId; serviceType = TYPE; port = socket.localPort; setAttribute("kinds", kinds.joinToString(",")); setAttribute("tv", if (isTvDevice) "1" else "0") }
         registration = object : NsdManager.RegistrationListener {
             override fun onServiceRegistered(i: NsdServiceInfo) = Unit
             override fun onRegistrationFailed(i: NsdServiceInfo, e: Int) = Unit
@@ -117,7 +121,7 @@ object DeviceLink {
                 override fun onServiceResolved(i: NsdServiceInfo) {
                     val host = i.host?.hostAddress
                     if (host != null) { val theirs = i.attributes["kinds"]?.let { String(it).split(",").toSet() } ?: ALL_KINDS      // a copy older than this field handles everything
-                        found[idOf(i.serviceName)] = Peer(idOf(i.serviceName), i.serviceName.substringBeforeLast(SEP), host, i.port, theirs); changed() }
+                        found[idOf(i.serviceName)] = Peer(idOf(i.serviceName), i.serviceName.substringBeforeLast(SEP), host, i.port, theirs, i.attributes["tv"]?.let { String(it) } == "1"); changed() }
                     done()
                 }
             })
@@ -135,10 +139,11 @@ object DeviceLink {
             val msg = JSONObject(BufferedReader(InputStreamReader(it.getInputStream())).readLine() ?: return@use)
             val reply = when (msg.optString("cmd")) {
                 // "now" is what is on screen; "resume" is the film this device stopped part-way, so it can be finished elsewhere
-                "query" -> JSONObject().put("now", HandOff.source?.snapshot()?.takeIf(::handles) ?: JSONObject.NULL)
+                "query" -> if (isTvDevice) JSONObject().put("now", JSONObject.NULL).put("resume", JSONObject.NULL)      // a TV is never a source
+                else JSONObject().put("now", HandOff.source?.snapshot()?.takeIf(::handles) ?: JSONObject.NULL)
                     .put("resume", app.container.getResumePoint()?.let { r -> HandOff.film(r.movieId, r.title, r.streamUrl, r.positionMs) }?.takeIf(::handles) ?: JSONObject.NULL)
                 "stop" -> { main.post { HandOff.source?.stop() }; JSONObject().put("ok", true) }
-                "play" -> JSONObject().put("ok", play(msg.optJSONObject("item")))
+                "play" -> JSONObject().put("ok", isTvDevice && play(msg.optJSONObject("item")))                         // only a TV receives
                 else -> JSONObject().put("ok", false)
             }
             it.getOutputStream().apply { write((reply.toString() + "\n").toByteArray()); flush() }

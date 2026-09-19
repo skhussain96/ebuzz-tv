@@ -125,3 +125,8 @@ elsewhere at the same position.
   an EditText's caret and scores by centre distance, so it skips full-width rows (the Resume pill). Any new vertical
   stack of rows must sit in a `FocusColumn`.
 - A selected tab still shows a focus ring (`tab_bg.xml` has a selected+focused state).
+
+Casting is one-way: phone/tablet (either edition) -> TV device (either edition). NSD attribute `tv` = 1 on a TV.
+Phones show "Play on" in the player and list only TVs that accept the item's kind; TVs show the home cast button
+("Continue from") and list only phones. Enforced on the receiving end too: a phone refuses `play`, a TV answers
+`query` with nothing. Phone-to-phone and TV-to-phone are deliberately impossible.
