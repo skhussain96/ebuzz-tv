@@ -11,8 +11,8 @@ android {
         applicationId = "world.ebuzz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.6.5"
+        versionCode = 14
+        versionName = "1.6.6"
     }
 
     // Two editions from one codebase. What differs is which feature modules each one links (see dependencies)
