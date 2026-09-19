@@ -32,11 +32,11 @@
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center"
         android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
         <ImageView android:id="@+id/btnPrev" android:layout_width="64dp" android:layout_height="64dp" android:padding="16dp"
-            android:background="@drawable/ctl_bg" android:src="@android:drawable/ic_media_previous" android:tint="@color/ink" android:contentDescription="Previous" />
+            android:background="@drawable/ctl_bg" android:src="@drawable/ic_prev" android:tint="@color/ink" android:contentDescription="Previous" />
         <ImageView android:id="@+id/btnPlay" android:layout_width="84dp" android:layout_height="84dp" android:padding="22dp" android:layout_marginHorizontal="28dp"
-            android:background="@drawable/ctl_bg_primary" android:src="@android:drawable/ic_media_pause" android:tint="@color/ground" android:contentDescription="Play or pause" />
+            android:background="@drawable/ctl_bg_primary" android:src="@drawable/ic_pause" android:tint="@color/ground" android:contentDescription="Play or pause" />
         <ImageView android:id="@+id/btnNext" android:layout_width="64dp" android:layout_height="64dp" android:padding="16dp"
-            android:background="@drawable/ctl_bg" android:src="@android:drawable/ic_media_next" android:tint="@color/ink" android:contentDescription="Next" />
+            android:background="@drawable/ctl_bg" android:src="@drawable/ic_next" android:tint="@color/ink" android:contentDescription="Next" />
     </LinearLayout>
 
     <!-- top bar for touch: back + audio -->
@@ -46,14 +46,14 @@
         android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:visibility="gone">
         <TextView android:id="@+id/btnBack" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:background="@drawable/pill_bg" android:paddingHorizontal="16dp" android:paddingVertical="9dp"
-            android:text="‹  Back" android:textColor="@color/ink" android:textSize="15sp" />
+            android:text="Back" android:drawableStart="@drawable/ic_back" android:drawablePadding="8dp" android:drawableTint="@color/ink" android:gravity="center_vertical" android:textColor="@color/ink" android:textSize="15sp" />
         <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
         <TextView android:id="@+id/btnTracks" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:background="@drawable/pill_bg" android:paddingHorizontal="16dp" android:paddingVertical="9dp" android:layout_marginEnd="8dp"
-            android:text="Tracks" android:textColor="@color/ink" android:textSize="15sp" android:focusable="true" android:visibility="gone" />
+            android:text="Tracks" android:drawableStart="@drawable/ic_tracks" android:drawablePadding="8dp" android:drawableTint="@color/ink" android:gravity="center_vertical" android:textColor="@color/ink" android:textSize="15sp" android:focusable="true" android:visibility="gone" />
         <TextView android:id="@+id/btnAudio" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:background="@drawable/pill_bg" android:paddingHorizontal="16dp" android:paddingVertical="9dp"
-            android:text="Audio" android:textColor="@color/ink" android:textSize="15sp" android:visibility="gone" />
+            android:text="Audio" android:drawableStart="@drawable/ic_audio" android:drawablePadding="8dp" android:drawableTint="@color/ink" android:gravity="center_vertical" android:textColor="@color/ink" android:textSize="15sp" android:visibility="gone" />
     </LinearLayout>
 
     <!-- bottom bar: title + LIVE line, or seek bar for movies -->
@@ -85,7 +85,7 @@
         android:background="@drawable/overlay_bg" android:paddingHorizontal="28dp" android:paddingVertical="18dp"
         android:visibility="gone">
         <ImageView android:id="@+id/volIcon" android:layout_width="34dp" android:layout_height="34dp"
-            android:src="@android:drawable/ic_lock_silent_mode_off" android:tint="@color/ink" />
+            android:src="@drawable/ic_volume" android:tint="@color/ink" />
         <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="14dp" android:layout_marginHorizontal="20dp"
             android:orientation="horizontal" android:background="@drawable/track_bg">
             <View android:id="@+id/volFill" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/track_fill" />

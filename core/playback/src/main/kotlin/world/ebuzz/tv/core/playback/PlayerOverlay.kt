@@ -71,7 +71,7 @@ internal class PlayerOverlay(private val b: ActivityPlayerBinding) {
     fun volume(level: Float) {
         val pct = (level * 100).roundToInt()
         b.volText.text = pct.toString()
-        b.volIcon.setImageResource(if (pct == 0) android.R.drawable.ic_lock_silent_mode else android.R.drawable.ic_lock_silent_mode_off)
+        b.volIcon.setImageResource(if (pct == 0) UiR.drawable.ic_volume_off else UiR.drawable.ic_volume)
         (b.volFill.layoutParams as LinearLayout.LayoutParams).weight = level
         (b.volRest.layoutParams as LinearLayout.LayoutParams).weight = 1f - level
         b.volFill.requestLayout()
@@ -87,7 +87,7 @@ internal class PlayerOverlay(private val b: ActivityPlayerBinding) {
     fun buffering(on: Boolean) { b.spinner.visibility = if (on) View.VISIBLE else View.GONE }
 
     fun playing(isPlaying: Boolean) =
-        b.btnPlay.setImageResource(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
+        b.btnPlay.setImageResource(if (isPlaying) UiR.drawable.ic_pause else UiR.drawable.ic_play)
 
     fun release() = ui.removeCallbacksAndMessages(null)
 }

@@ -23,14 +23,14 @@ class StateView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
 
     fun showLoading() = show(spinner = true)
 
-    fun showEmpty(message: String = "Nothing found") = show(title = message, icon = android.R.drawable.ic_menu_search)
+    fun showEmpty(message: String = "Nothing found") = show(title = message, icon = R.drawable.ic_search)
 
     fun showError(
         title: String = context.getString(R.string.error_title),
         message: String = context.getString(R.string.error_message),
     ) {
         val wasError = isShowingError
-        show(title = title, message = message, icon = android.R.drawable.stat_notify_error, retry = true)
+        show(title = title, message = message, icon = R.drawable.ic_offline, retry = true)
         if (!wasError) b.retry.post { b.retry.requestFocus() }
     }
 

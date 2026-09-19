@@ -55,7 +55,7 @@ internal class MoviesSource(private val c: AppContainer) : CatalogSource {
     }
 
     override fun shortcut(): CatalogShortcut? = c.getResumePoint()?.let { r ->
-        CatalogShortcut("▶  Resume · ${r.title}") { ctx -> ctx.startActivity(PlayerIntents.movie(ctx, r.movieId, r.title, r.streamUrl)) }
+        CatalogShortcut("Resume · ${r.title}") { ctx -> ctx.startActivity(PlayerIntents.movie(ctx, r.movieId, r.title, r.streamUrl)) }
     }
 
     override fun reset() = loaded.clear()

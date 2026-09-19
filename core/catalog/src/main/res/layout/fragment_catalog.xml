@@ -17,7 +17,7 @@
             <HorizontalScrollView style="@style/ChipRow"><LinearLayout android:id="@+id/chips" style="@style/ChipRowContent" /></HorizontalScrollView>
         </LinearLayout>
         <TextView
-            android:id="@+id/shortcut" style="@style/Chip"
+            android:id="@+id/shortcut" style="@style/Chip" android:drawableStart="@drawable/ic_play" android:drawablePadding="6dp" android:drawableTint="@color/honey" android:gravity="center_vertical"
             android:layout_width="match_parent" android:layout_marginHorizontal="16dp" android:layout_marginTop="6dp"
             android:maxLines="1" android:ellipsize="end" android:textColor="@color/honey" android:visibility="gone" />
 
