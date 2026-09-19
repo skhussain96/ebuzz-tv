@@ -120,7 +120,9 @@ elsewhere at the same position.
 
 - Start position travels with the media item (`setMediaItem(item, startPositionMs)`). A separate `seekTo()` after
   `setMediaItem()` is dropped across the MediaController, which silently broke Resume and film hand-off.
-- Volume is the device media stream (`AudioManager.STREAM_MUSIC`); player gain is used only when `isVolumeFixed`.
+- Volume is the device media stream (`AudioManager.STREAM_MUSIC`) and always snaps to 10 % steps, D-pad and swipe alike:
+  the stream is set to the index at or above the level and player gain trims the remainder (a 15-step stream has no
+  slot for every 10 %). Player gain alone is used only when `isVolumeFixed`. Opening the player never changes the volume.
 - Vertical D-pad focus is row-based: screens and the home shell are `FocusColumn`s. Android's FocusFinder measures from
   an EditText's caret and scores by centre distance, so it skips full-width rows (the Resume pill). Any new vertical
   stack of rows must sit in a `FocusColumn`.
@@ -130,3 +132,10 @@ Casting is one-way: phone/tablet (either edition) -> TV device (either edition).
 Phones show "Play on" in the player and list only TVs that accept the item's kind; TVs show the home cast button
 ("Continue from") and list only phones. Enforced on the receiving end too: a phone refuses `play`, a TV answers
 `query` with nothing. Phone-to-phone and TV-to-phone are deliberately impossible.
+- A `play` intent reaching an already-open player (`singleTop` -> `onNewIntent`: a cast, or another tile) replaces the
+  screen. The old screen must release its controller (listener, video surface, stop + clear) *before* the new one starts;
+  a late `clearVideoSurface`/`pause` from it lands on the new stream (film audio over a frozen frame of the old channel).
+- `PlaybackService` stops itself once the player is idle and empty, so closing a channel or film releases ExoPlayer
+  (measured: service gone and thread count back to baseline 5 s after closing). Albums keep playing by design.
+- The link server prefers ports 47811/47812 (random only if both are taken) and senders fall back to them: a restarted
+  app otherwise returns on a new port while peers still hold the old one from the mDNS cache ("did not respond").

@@ -33,6 +33,10 @@ data class Peer(val id: String, val name: String, val host: String, val port: In
 object DeviceLink {
     private const val TYPE = "_ebuzz._tcp."
     val ALL_KINDS = setOf("live", "film", "album")
+    // Preferred ports. A restarted app would otherwise come back on a new random port while other devices still hold
+    // the old one from the system's mDNS cache ("did not respond"). Two, because both editions can be installed on one
+    // device; random only if both are taken. Senders fall back to these when the advertised port is dead.
+    private val KNOWN_PORTS = listOf(47811, 47812)
     private const val SEP = "~"                       // service name = "<display name>~<id>"
     private val io = Executors.newCachedThreadPool()
     private val main = Handler(Looper.getMainLooper())
@@ -80,7 +84,7 @@ object DeviceLink {
 
     // only while the app is on screen: a received "play" opens the player, which Android allows only from the foreground
     private fun start() {
-        val socket = runCatching { ServerSocket(0) }.getOrNull() ?: return
+        val socket = (KNOWN_PORTS + 0).firstNotNullOfOrNull { port -> runCatching { ServerSocket(port) }.getOrNull() } ?: return
         server = socket
         io.execute { while (!socket.isClosed) runCatching { socket.accept() }.onSuccess { s -> io.execute { serve(s) } } }
         val info = NsdServiceInfo().apply { serviceName = deviceName() + SEP + selfId; serviceType = TYPE; port = socket.localPort; setAttribute("kinds", kinds.joinToString(",")); setAttribute("tv", if (isTvDevice) "1" else "0") }
@@ -170,13 +174,15 @@ object DeviceLink {
     // ---- sending ----
 
     fun request(peer: Peer, msg: JSONObject, onReply: (JSONObject?) -> Unit) = io.execute {
-        val reply = runCatching {
-            Socket().use { s ->
-                s.connect(InetSocketAddress(peer.host, peer.port), 2500); s.soTimeout = 4000
-                s.getOutputStream().apply { write((msg.toString() + "\n").toByteArray()); flush() }
-                BufferedReader(InputStreamReader(s.getInputStream())).readLine()?.let(::JSONObject)
-            }
-        }.getOrNull()
+        val reply = (listOf(peer.port) + KNOWN_PORTS).distinct().firstNotNullOfOrNull { port ->
+            runCatching {
+                Socket().use { s ->
+                    s.connect(InetSocketAddress(peer.host, port), 1500); s.soTimeout = 4000
+                    s.getOutputStream().apply { write((msg.toString() + "\n").toByteArray()); flush() }
+                    BufferedReader(InputStreamReader(s.getInputStream())).readLine()?.let(::JSONObject)
+                }
+            }.getOrNull()
+        }
         main.post { onReply(reply) }
     }
 }

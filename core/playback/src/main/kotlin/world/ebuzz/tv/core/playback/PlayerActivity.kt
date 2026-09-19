@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.Intent
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.SystemClock
@@ -58,6 +59,7 @@ import world.ebuzz.tv.core.ui.applyOrientation
 import world.ebuzz.tv.core.ui.factory
 import world.ebuzz.tv.core.ui.isTv
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
@@ -218,21 +220,29 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // Volume is the device's own media volume, so the phone/TV volume keys, the system slider and this screen agree.
-    // Only a device with fixed volume (some TVs and set-top boxes leave it to the amplifier) falls back to player gain.
+    // It always moves in steps of 10 %, by D-pad or by swipe. A device stream has far fewer steps than that (15 is
+    // common), so the stream is set to the step at or above the level and player gain trims the rest: every step is real.
+    // Only a device with fixed volume (some TVs and set-top boxes leave it to the amplifier) uses player gain alone.
     private val audio by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
     private val maxVolume by lazy { audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
-    private fun deviceVolume(): Float? = if (audio.isVolumeFixed) null else audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume
+    private var gain = 1f
+    private fun snap(v: Float) = (v.coerceIn(0f, 1f) * 10).roundToInt() / 10f
+    private fun deviceVolume(): Float? = if (audio.isVolumeFixed) null else snap(audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume * gain)
 
     private fun applyVolume(v: Float, show: Boolean = true) {
-        val level = v.coerceIn(0f, 1f)
-        if (audio.isVolumeFixed) { vm.setVolume(level, persist = true); player?.volume = level }
-        else { audio.setStreamVolume(AudioManager.STREAM_MUSIC, (level * maxVolume).roundToInt(), 0); player?.volume = 1f; vm.setVolume(level, persist = false) }
-        if (show) overlay.volume(deviceVolume() ?: level)
+        val level = snap(v)
+        if (audio.isVolumeFixed) { gain = level; vm.setVolume(level, persist = true) }
+        else {
+            val index = ceil(level * maxVolume - 0.001f).toInt().coerceIn(0, maxVolume)
+            gain = if (index == 0) 1f else (level * maxVolume / index).coerceIn(0f, 1f)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0)
+            vm.setVolume(level, persist = false)
+        }
+        player?.volume = gain
+        if (show) overlay.volume(level)
     }
     private fun setVolume(v: Float, persist: Boolean) = applyVolume(v)
-    private fun stepVolume(dir: Int) =
-        if (audio.isVolumeFixed) applyVolume(((vm.volume * 10).roundToInt() + dir) / 10f)
-        else applyVolume((audio.getStreamVolume(AudioManager.STREAM_MUSIC) + dir).toFloat() / maxVolume)
+    private fun stepVolume(dir: Int) = applyVolume((deviceVolume() ?: vm.volume) + dir * 0.10f)
     private fun saveProgress() { val p = player ?: return; if (kind == PlayerKind.FILM) vm.saveProgress(p.currentPosition, p.duration) }
 
     // ---- input ----
@@ -317,17 +327,36 @@ class PlayerActivity : ComponentActivity() {
     override fun onStart() { super.onStart(); ticker.post(tick); if (kind != PlayerKind.ALBUM) player?.takeIf { it.mediaItemCount > 0 }?.play() }
 
     /** Video has no business playing unseen; an album carries on in the background. */
-    override fun onStop() { super.onStop(); ticker.removeCallbacks(tick); saveProgress(); if (kind != PlayerKind.ALBUM) player?.pause() }
+    override fun onStop() { super.onStop(); ticker.removeCallbacks(tick); saveProgress(); if (kind != PlayerKind.ALBUM && !replaced) player?.pause() }
+
+    // A second "play" while this screen is open (a cast arriving, or another tile) replaces it: the view model is tied
+    // to the first intent, so the screen restarts on the new one, and must not stop the session on its way out.
+    private var replaced = false
+
+    private fun releaseController(stopPlayback: Boolean) {
+        player?.let { p ->
+            p.removeListener(listener)
+            if (stopPlayback) { p.stop(); p.clearMediaItems() }
+            p.clearVideoSurfaceView(b.surface)
+        }
+        player = null
+        controllerFuture?.let(MediaController::releaseFuture); controllerFuture = null
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (PlayerIntents.args(intent) == PlayerArgs.Attach) return
+        // let go of the player completely *before* the next screen exists: a late clearVideoSurface or pause from this
+        // screen would land on the new one (film audio over a frozen frame of the old channel)
+        saveProgress()
+        replaced = true
+        releaseController(stopPlayback = true)
+        finish(); startActivity(intent)
+    }
 
     override fun onDestroy() {
         if (HandOff.source === handOffSource) HandOff.source = null
         ticker.removeCallbacksAndMessages(null); overlay.release()
-        player?.let { p ->
-            p.removeListener(listener)
-            if (isFinishing && kind != PlayerKind.ALBUM) { p.stop(); p.clearMediaItems() }        // leaving a channel or film ends it
-        }
-        player?.clearVideoSurfaceView(b.surface)
-        controllerFuture?.let(MediaController::releaseFuture)
+        releaseController(stopPlayback = isFinishing && kind != PlayerKind.ALBUM)        // leaving a channel or film ends it; an album plays on
         super.onDestroy()
     }
 }

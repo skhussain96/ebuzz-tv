@@ -2,6 +2,10 @@ package world.ebuzz.tv.core.playback
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.media3.common.Timeline
+import androidx.media3.common.Player
+import android.os.Looper
+import android.os.Handler
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -34,6 +38,13 @@ class PlaybackService : MediaSessionService() {
             .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), /* handleAudioFocus = */ true)
             .setHandleAudioBecomingNoisy(true)                       // pause when headphones are unplugged
             .build()
+        // Closing the player screen stops and empties the player; the service then has no reason to live. Stopping it
+        // (it is destroyed once the screen has unbound) releases ExoPlayer, its threads and codecs. The short delay skips
+        // the empty moment between two streams.
+        player.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) = scheduleIdleCheck()
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) = scheduleIdleCheck()
+        })
         session = MediaSession.Builder(this, player)
             .setSessionActivity(PendingIntent.getActivity(this, 0, PlayerIntents.attach(this), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .build()
@@ -48,6 +59,10 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    private val main = Handler(Looper.getMainLooper())
+    private val idleCheck = Runnable { session?.player?.let { if (it.playbackState == Player.STATE_IDLE && it.mediaItemCount == 0) stopSelf() } }
+    private fun scheduleIdleCheck() { main.removeCallbacks(idleCheck); main.postDelayed(idleCheck, 1500) }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -56,6 +71,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        main.removeCallbacks(idleCheck)
         session?.run { player.release(); release() }
         session = null
         super.onDestroy()
