@@ -5,7 +5,9 @@ package world.ebuzz.tv.js
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.promise
+import world.ebuzz.filter.Subject
 import world.ebuzz.tv.data.remote.EbuzzApi
+import world.ebuzz.tv.data.remote.TmdbEvidenceSource
 import world.ebuzz.tv.data.repository.ChannelRepositoryImpl
 import world.ebuzz.tv.data.repository.MovieRepositoryImpl
 import world.ebuzz.tv.domain.model.MovieQuery
@@ -27,16 +29,20 @@ import kotlin.js.Promise
  * [baseUrl] is the same-origin proxy path; the browser can neither send the API's required headers nor pass CORS.
  */
 @JsExport
-class EbuzzSdk(baseUrl: String) {
+class EbuzzSdk(baseUrl: String, tmdbBaseUrl: String = "") {
     private val api = EbuzzApi(baseUrl, emptyMap())
-    private val policy = ContentPolicy()
+    private val policy = ContentPolicy(tmdbBaseUrl.takeIf(String::isNotEmpty)?.let { TmdbEvidenceSource(it) })
     private val movieRepo = MovieRepositoryImpl(api)
     private val getChannels = GetChannels(ChannelRepositoryImpl(api), policy)
     private val getMoviesPage = GetMoviesPage(movieRepo, policy)
     private val getCategories = GetMovieCategories(movieRepo)
 
     /** The one content policy every client shares. */
-    fun allows(title: String, genre: String, description: String): Boolean = policy.allows(title, genre, description)
+    fun allows(title: String, genre: String, description: String, rated: String = ""): Boolean = policy.allows(title, genre, description, rated)
+
+    // Local rules, then TMDB through [tmdbBaseUrl] (the server's /tmdb/ proxy, which holds the key).
+    fun screen(title: String, genre: String, description: String, rated: String, imdbId: String): Promise<Boolean> =
+        GlobalScope.promise { policy.screen(Subject(title, genre, description, rated, imdbId)) }
 
     fun categories(): Array<JsCategory> = getCategories().map { JsCategory(it.id, it.name) }.toTypedArray()
 

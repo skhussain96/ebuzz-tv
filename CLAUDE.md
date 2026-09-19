@@ -139,3 +139,10 @@ Phones show "Play on" in the player and list only TVs that accept the item's kin
   (measured: service gone and thread count back to baseline 5 s after closing). Albums keep playing by design.
 - The link server prefers ports 47811/47812 (random only if both are taken) and senders fall back to them: a restarted
   app otherwise returns on a new port while peers still hold the old one from the mDNS cache ("did not respond").
+
+## Launcher identity
+
+Each edition owns its icon and TV banner (`app/src/<flavor>/res/drawable/{ic_launcher_fg,ic_launcher_bg,banner}.xml`;
+nothing in `main`). TV: dark tile, honey TV set with a red on-air dot, "eBuzz TV" + LIVE pill. Entertainment: honey tile,
+dark clapperboard, "eBuzz Entertainment". A TV launcher shows the banner and no label, so the name is drawn into the
+banner as vector paths (Roboto outlines) - keep both editions visually different in colour *and* shape.

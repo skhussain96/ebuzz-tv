@@ -4,7 +4,7 @@ data class Channel(val id: Int, val number: Int, val title: String, val poster: 
 
 data class Movie(
     val id: Int, val title: String, val poster: String?, val year: String, val rating: String, val quality: String,
-    val streamUrl: String, val genre: String = "", val description: String = "",
+    val streamUrl: String, val genre: String = "", val description: String = "", val rated: String = "", val imdbId: String = "",
 )
 
 data class MovieCategory(val id: Int, val name: String)

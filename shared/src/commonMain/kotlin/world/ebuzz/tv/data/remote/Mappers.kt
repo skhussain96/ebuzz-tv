@@ -35,7 +35,7 @@ fun JsonObject.toMovie(): Movie? {
     return Movie(
         id = int("id") ?: return null, title = str("title"), poster = str("poster").takeIf(String::isNotBlank),
         year = yearRe.find(str("release_date"))?.value.orEmpty(), rating = str("rating").clean(),
-        quality = str("print").clean(), streamUrl = url, genre = str("genre"), description = str("description"),
+        quality = str("print").clean(), streamUrl = url, genre = str("genre"), description = str("description"), rated = str("rated"), imdbId = str("imdbid"),
     )
 }
 

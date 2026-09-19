@@ -34,7 +34,7 @@ class GetMoviesPage(private val repo: MovieRepository, private val policy: Conte
         repeat(MAX_SKIPS) {
             val page = repo.page(q)
             // descriptions are only needed for filtering; drop them to keep the list light in memory
-            val allowed = page.items.filter(policy::allows).map { it.copy(description = "", genre = "") }
+            val allowed = policy.screen(page.items).map { it.copy(description = "", genre = "", rated = "", imdbId = "") }
             if (allowed.isNotEmpty() || page.nextPage == null) return MoviePage(allowed, page.nextPage)
             q = q.copy(page = page.nextPage)
         }

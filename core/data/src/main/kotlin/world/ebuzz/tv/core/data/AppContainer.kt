@@ -2,6 +2,7 @@ package world.ebuzz.tv.core.data
 
 import android.content.Context
 import world.ebuzz.tv.data.remote.EbuzzApi
+import world.ebuzz.tv.data.remote.TmdbEvidenceSource
 import world.ebuzz.tv.data.repository.ChannelRepositoryImpl
 import world.ebuzz.tv.domain.usecase.ClearMovieProgress
 import world.ebuzz.tv.domain.usecase.ContentPolicy
@@ -23,7 +24,7 @@ import world.ebuzz.tv.domain.usecase.StepTrack
  */
 class AppContainer(context: Context) {
     val api by lazy { EbuzzApi() }                                  // direct base URL + the browser headers the API demands
-    val policy = ContentPolicy()
+    val policy = ContentPolicy(BuildConfig.TMDB_KEY.takeIf(String::isNotEmpty)?.let { TmdbEvidenceSource(apiKey = it) })
     private val playback by lazy { PrefsPlaybackStore(context.applicationContext) }
     val sections by lazy { PrefsSectionStore(context.applicationContext) }
     val catalogState by lazy { PrefsCatalogStateStore(context.applicationContext) }

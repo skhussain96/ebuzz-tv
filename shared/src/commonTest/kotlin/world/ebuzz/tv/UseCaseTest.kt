@@ -1,6 +1,8 @@
 package world.ebuzz.tv
 
 import kotlinx.coroutines.test.runTest
+import world.ebuzz.filter.Evidence
+import world.ebuzz.filter.EvidenceSource
 import world.ebuzz.tv.domain.model.Album
 import world.ebuzz.tv.domain.model.AlbumPage
 import world.ebuzz.tv.domain.model.Channel
@@ -60,6 +62,15 @@ class UseCaseTest {
         assertFalse(blocked(title = "Jumanji", desc = "Four teenagers are sucked into a video game."))
         assertFalse(blocked(title = "PAW Patrol: The Dino Movie", genre = "Animation,Family"))
         assertFalse(blocked(title = "Essex Boys"))                       // word boundary, not substring
+    }
+
+    @Test fun moviesAreScreenedByRatingAndEvidence() = runTest {
+        val asked = mutableListOf<String>()
+        val source = EvidenceSource { id -> asked += id; when (id) { "tt0000002" -> Evidence(keywords = listOf("female nudity")); "tt0000004" -> error("offline"); else -> Evidence() } }
+        val movies = listOf(movie(1).copy(imdbId = "tt0000001"), movie(2).copy(imdbId = "tt0000002"), movie(3).copy(rated = "R", imdbId = "tt0000003"),
+            movie(4).copy(imdbId = "tt0000004"), movie(5))
+        assertEquals(listOf(1, 4, 5), ContentPolicy(source).screen(movies).map { it.id })
+        assertEquals(listOf("tt0000001", "tt0000002", "tt0000004"), asked.sorted())     // blocked locally = never looked up
     }
 
     @Test fun policyAppliesToChannels() {
