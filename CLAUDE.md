@@ -9,7 +9,7 @@ APK ≈ 2 MB, low RAM is a requirement.
 | Flavor | Contents | Application id | Label |
 |---|---|---|---|
 | `tv` | Live TV | `world.ebuzz.tv` | eBuzz TV |
-| `entertainment` | Live TV + Movies + Music | `world.ebuzz.entertainment` | eBuzz Entertainment |
+| `entertainment` | Live TV + Movies + Music | `world.ebuzz.entertainment` | eBuzz TV+ |
 
 Editions differ in **which feature modules they link**, not in a flag. `app/build.gradle.kts` adds `:feature:movies`
 and `:feature:music` with `entertainmentImplementation`, and each edition's tab list lives in its own source set:
@@ -19,6 +19,7 @@ movies, music or catalog modules on its classpath. Both run on TVs and phones an
 ## Modules
 
 ```
+adultfilter       Pure Kotlin Multiplatform (jvm + js), no dependencies, no I/O: every adult-content rule.
 shared            Kotlin Multiplatform (Android + JS): domain + data. Shared with the web player.
 core/ui           theme, drawables, styles, StateView (loading / empty / error + Retry), chips, DigitEntry,
                   HomeSection + KeyHandler contracts
@@ -58,6 +59,11 @@ edition's `Sections.kt` and add the `<edition>Implementation` dependency.
 ## Content policy (do not weaken)
 
 `ContentPolicy` is permanent and over-strict by design: no toggle, no allow-list, false positives accepted.
+It only maps models onto `:adultfilter` (`AdultFilter`), whose layers can each block but never clear: `TextRules` (below),
+`RatingRules` (restricted certificates in the API's `rated`: R, NC-17, TV-MA, A, Unrated, any age ≥ 17; letters are read per
+country) and TMDB `Evidence` by IMDb id (adult flag, genres, keywords, overview, per-country certificates) fetched by
+`TmdbEvidenceSource`. Android reads `tmdb.key` from `local.properties`; the web goes through the server's `/tmdb/` proxy.
+No key, unknown id or a failed lookup falls back to the local layers (`blockUnverified = false`).
 Blocks Romance/Erotic/Adult genres, a long term list in title/genre, and a longer one in descriptions, including
 sexual-violence terms; also applied to channel titles. The web keeps a mirrored fallback of the same lists in
 `ebuzz-web.html` (`FALLBACK_POLICY`) for browsers that can't load the bundle — change both together.
@@ -143,6 +149,14 @@ Phones show "Play on" in the player and list only TVs that accept the item's kin
 ## Launcher identity
 
 Each edition owns its icon and TV banner (`app/src/<flavor>/res/drawable/{ic_launcher_fg,ic_launcher_bg,banner}.xml`;
-nothing in `main`). TV: dark tile, honey TV set with a red on-air dot, "eBuzz TV" + LIVE pill. Entertainment: honey tile,
-dark clapperboard, "eBuzz Entertainment". A TV launcher shows the banner and no label, so the name is drawn into the
-banner as vector paths (Roboto outlines) - keep both editions visually different in colour *and* shape.
+nothing in `main`). Both tiles are honey with dark artwork. TV: TV set with a red
+on-air dot, "eBuzz TV" + LIVE pill. Entertainment: clapperboard, "eBuzz TV+". A TV launcher shows the banner and no label, so the name is drawn into the
+banner as vector paths (Roboto outlines) - keep both editions visually different in shape *and* name.
+
+## Verdict cache
+
+`AdultFilter.screen()` remembers final verdicts through a `VerdictStore`: `SqliteVerdictStore` on Android (`verdicts.db`, read
+into memory once, written on a background thread), `localStorage` on the web. Stored: a block by any layer, or a pass the
+evidence source vouched for. Never stored: "allowed because the lookup failed / no key / no IMDb id", so those retry.
+Keys are `v<RULES_VERSION>:<imdbId>:<hash of title, genre, description, rated>` - bump `AdultFilter.RULES_VERSION` whenever
+any rule changes, or old verdicts keep answering.

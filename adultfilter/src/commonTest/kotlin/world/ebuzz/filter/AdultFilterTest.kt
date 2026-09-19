@@ -1,6 +1,7 @@
 package world.ebuzz.filter
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -32,5 +33,22 @@ class AdultFilterTest {
         assertFalse(filter.allows(Evidence(keywords = listOf("pink film"))))
         assertFalse(filter.allows(Evidence(overview = "Two strangers begin a passionate affair.")))
         assertTrue(filter.allows(Evidence(genres = listOf("Family"), keywords = listOf("dog", "friendship"), overview = "A boy and his dog.")))
+    }
+
+    private class MemoryStore : VerdictStore { val map = HashMap<String, Boolean>(); override fun get(key: String) = map[key]; override fun put(key: String, allowed: Boolean) { map[key] = allowed } }
+
+    @Test fun storedVerdictSkipsTheLookup() = kotlinx.coroutines.test.runTest {
+        var lookups = 0; val store = MemoryStore()
+        val source = EvidenceSource { lookups++; Evidence(adult = true) }
+        val film = Subject("Plain", "Action", "", "PG", "tt1234567")
+        assertFalse(AdultFilter(source, store = store).screen(film))
+        assertFalse(AdultFilter(source, store = store).screen(film))          // a new filter = a new app run
+        assertEquals(1, lookups)
+    }
+
+    @Test fun failedLookupIsNotStored() = kotlinx.coroutines.test.runTest {
+        val store = MemoryStore()
+        assertTrue(AdultFilter(EvidenceSource { null }, store = store).screen(Subject("Plain", "Action", "", "PG", "tt1234567")))
+        assertTrue(store.map.isEmpty())
     }
 }

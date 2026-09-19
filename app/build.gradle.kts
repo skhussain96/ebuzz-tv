@@ -11,8 +11,8 @@ android {
         applicationId = "world.ebuzz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 20
-        versionName = "1.8.3"
+        versionCode = 23
+        versionName = "1.8.6"
     }
 
     // Two editions from one codebase. What differs is which feature modules each one links (see dependencies)
@@ -25,12 +25,14 @@ android {
         create("tv") {
             dimension = "edition"
             applicationIdSuffix = ".tv"
-            resValue("string", "app_name", "eBuzz TV")
+            resValue("string", "app_name", "TV")
+            manifestPlaceholders += mapOf("appIcon" to "@mipmap/ic_launcher_tv", "appIconRound" to "@mipmap/ic_launcher_tv_round")
         }
         create("entertainment") {
             dimension = "edition"
             applicationIdSuffix = ".entertainment"
-            resValue("string", "app_name", "eBuzz Entertainment")
+            resValue("string", "app_name", "TV+")
+            manifestPlaceholders += mapOf("appIcon" to "@mipmap/ic_launcher_tv_plus", "appIconRound" to "@mipmap/ic_launcher_tv_plus_round")
         }
     }
     // Size: the UI is English-only, so the ~80 translated copies of library strings are dropped from the resource table.

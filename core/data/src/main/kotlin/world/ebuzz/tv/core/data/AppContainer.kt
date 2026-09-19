@@ -24,7 +24,7 @@ import world.ebuzz.tv.domain.usecase.StepTrack
  */
 class AppContainer(context: Context) {
     val api by lazy { EbuzzApi() }                                  // direct base URL + the browser headers the API demands
-    val policy = ContentPolicy(BuildConfig.TMDB_KEY.takeIf(String::isNotEmpty)?.let { TmdbEvidenceSource(apiKey = it) })
+    val policy by lazy { ContentPolicy(BuildConfig.TMDB_KEY.takeIf(String::isNotEmpty)?.let { TmdbEvidenceSource(apiKey = it) }, SqliteVerdictStore(context)) }
     private val playback by lazy { PrefsPlaybackStore(context.applicationContext) }
     val sections by lazy { PrefsSectionStore(context.applicationContext) }
     val catalogState by lazy { PrefsCatalogStateStore(context.applicationContext) }

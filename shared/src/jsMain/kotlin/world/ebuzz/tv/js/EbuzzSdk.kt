@@ -31,7 +31,7 @@ import kotlin.js.Promise
 @JsExport
 class EbuzzSdk(baseUrl: String, tmdbBaseUrl: String = "") {
     private val api = EbuzzApi(baseUrl, emptyMap())
-    private val policy = ContentPolicy(tmdbBaseUrl.takeIf(String::isNotEmpty)?.let { TmdbEvidenceSource(it) })
+    private val policy = ContentPolicy(tmdbBaseUrl.takeIf(String::isNotEmpty)?.let { TmdbEvidenceSource(it) }, LocalStorageVerdictStore)
     private val movieRepo = MovieRepositoryImpl(api)
     private val getChannels = GetChannels(ChannelRepositoryImpl(api), policy)
     private val getMoviesPage = GetMoviesPage(movieRepo, policy)
@@ -55,4 +55,11 @@ class EbuzzSdk(baseUrl: String, tmdbBaseUrl: String = "") {
         val p = getMoviesPage(MovieQuery(page, categoryId, text, MovieSort.entries.firstOrNull { it.name == sort } ?: MovieSort.ADDED))
         JsMoviePage(p.items.map { JsMovie(it.id, it.title, it.poster, it.year, it.rating, it.quality, it.streamUrl) }.toTypedArray(), p.nextPage)
     }
+}
+
+// Browser-side verdict cache; absent or full storage (private window, Node) just means no caching.
+private object LocalStorageVerdictStore : world.ebuzz.filter.VerdictStore {
+    private val storage: dynamic = js("(function(){try{return typeof localStorage==='undefined'?null:localStorage}catch(e){return null}})()")
+    override fun get(key: String): Boolean? = try { when (storage?.getItem("vd:$key") as String?) { "1" -> true; "0" -> false; else -> null } } catch (e: Throwable) { null }
+    override fun put(key: String, allowed: Boolean) { try { storage?.setItem("vd:$key", if (allowed) "1" else "0") } catch (e: Throwable) { } }
 }

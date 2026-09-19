@@ -6,13 +6,14 @@ import kotlinx.coroutines.coroutineScope
 import world.ebuzz.filter.AdultFilter
 import world.ebuzz.filter.EvidenceSource
 import world.ebuzz.filter.Subject
+import world.ebuzz.filter.VerdictStore
 import world.ebuzz.tv.domain.model.Album
 import world.ebuzz.tv.domain.model.Channel
 import world.ebuzz.tv.domain.model.Movie
 
 // Maps the domain models onto the `:adultfilter` module, where every rule lives.
-class ContentPolicy(source: EvidenceSource? = null) {
-    private val filter = AdultFilter(source)
+class ContentPolicy(source: EvidenceSource? = null, store: VerdictStore? = null) {
+    private val filter = AdultFilter(source, store = store)
 
     fun allows(m: Movie): Boolean = filter.allows(m.subject())
 
@@ -26,9 +27,10 @@ class ContentPolicy(source: EvidenceSource? = null) {
 
     suspend fun screen(s: Subject): Boolean = filter.screen(s)
 
-    // Local rules first, then the evidence source for the survivors, a few lookups at a time (HttpURLConnection on old TVs).
+    // A remembered verdict answers at once; otherwise local rules, then the evidence source, a few lookups at a time
+    // (HttpURLConnection on old TVs).
     suspend fun screen(movies: List<Movie>): List<Movie> = coroutineScope {
-        movies.filter(::allows).chunked(PARALLEL).flatMap { chunk ->
+        movies.chunked(PARALLEL).flatMap { chunk ->
             chunk.map { m -> async { m.takeIf { filter.screen(it.subject()) } } }.awaitAll().filterNotNull()
         }
     }

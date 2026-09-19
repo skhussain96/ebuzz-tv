@@ -8,6 +8,6 @@ kotlin {
     js(IR) { browser() }
 
     sourceSets {
-        commonTest.dependencies { implementation(kotlin("test")) }
+        commonTest.dependencies { implementation(kotlin("test")); implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1") }
     }
 }
